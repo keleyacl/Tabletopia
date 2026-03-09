@@ -3,17 +3,20 @@
 # Ensure Homebrew binaries are in PATH
 export PATH="/opt/homebrew/bin:$PATH"
 
-echo "==========================="
-echo "  Multy Game Stopper"
-echo "==========================="
-echo ""
-echo "Which game would you like to stop?"
-echo ""
-echo "  1) splendor-duel"
-echo "  2) azul"
-echo "  3) all (stop both)"
-echo ""
-read -p "Enter your choice (1, 2, or 3): " choice
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Auto-discover game directories (subdirectories containing package.json)
+games=()
+for dir in "$SCRIPT_DIR"/*/; do
+  if [ -f "$dir/package.json" ]; then
+    games+=("$(basename "$dir")")
+  fi
+done
+
+if [ ${#games[@]} -eq 0 ]; then
+  echo "No game projects found in $SCRIPT_DIR"
+  exit 1
+fi
 
 stop_game() {
   local game_dir="$1"
@@ -53,22 +56,36 @@ stop_game() {
   echo "  $game_dir stopped."
 }
 
-case $choice in
-  1)
-    stop_game "splendor-duel"
-    ;;
-  2)
-    stop_game "azul"
-    ;;
-  3)
-    stop_game "splendor-duel"
-    stop_game "azul"
-    ;;
-  *)
-    echo "Invalid choice. Exiting."
-    exit 1
-    ;;
-esac
+echo "==========================="
+echo "  Multy Game Stopper"
+echo "==========================="
+echo ""
+echo "Which game would you like to stop?"
+echo ""
+
+for i in "${!games[@]}"; do
+  echo "  $((i + 1))) ${games[$i]}"
+done
+
+ALL_OPTION=$((${#games[@]} + 1))
+echo "  $ALL_OPTION) all (stop all games)"
+
+echo ""
+read -p "Enter your choice (1-$ALL_OPTION): " choice
+
+# Validate input
+if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt "$ALL_OPTION" ]; then
+  echo "Invalid choice. Exiting."
+  exit 1
+fi
+
+if [ "$choice" -eq "$ALL_OPTION" ]; then
+  for game in "${games[@]}"; do
+    stop_game "$game"
+  done
+else
+  stop_game "${games[$((choice - 1))]}"
+fi
 
 echo ""
 echo "Done."
