@@ -9,6 +9,7 @@
 | 🏛️ [花砖物语 (Azul)](./azul/) | 瓷砖拼贴策略游戏 | 2-4 人 | 3000 | 3001 |
 | 💎 [璀璨宝石·对决 (Splendor Duel)](./splendor-duel/) | 宝石收集对战游戏 | 2 人 | 3002 | 3003 |
 | 🏔️ [失落的城市 (Lost Cities)](./lost_cities/) | 探险卡牌对战游戏 | 2 人 | 3004 | 3005 |
+| 🐪 [斋浦尔 (Jaipur)](./jaipur/) | 印度商人交易游戏 | 2 人 | 3006 | 3007 |
 
 聚合首页 (Portal) 运行在端口 **4000**，提供所有游戏的入口导航。
 
@@ -20,6 +21,7 @@ Tabletopia/
 ├── azul/                # 花砖物语
 ├── splendor-duel/       # 璀璨宝石·对决
 ├── lost_cities/         # 失落的城市
+├── jaipur/              # 斋浦尔
 ├── run.sh               # 启动脚本
 ├── stop.sh              # 停止脚本
 └── README.md
@@ -55,6 +57,7 @@ Tabletopia/
 - **Azul**: http://localhost:3000
 - **Splendor Duel**: http://localhost:3002
 - **Lost Cities**: http://localhost:3004
+- **Jaipur**: http://localhost:3006
 
 ### 启动单个项目
 

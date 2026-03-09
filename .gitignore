@@ -30,6 +30,9 @@ coverage/
 .DS_Store
 Thumbs.db
 
+# Aone Copilot
+.aone_copilot/
+
 # IDE
 .idea/
 .vscode/

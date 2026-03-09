@@ -39,6 +39,16 @@ const games: GameInfo[] = [
     color: '#dc2626',
     players: '2 人',
   },
+  {
+    name: '斋浦尔',
+    subtitle: 'Jaipur',
+    description:
+      '在印度集市中与对手竞争，通过交易货物、获得标记和奖励来积累财富。策略性地买卖，成为最富有的商人！',
+    icon: '🐪',
+    url: 'http://localhost:3006',
+    color: '#d97706',
+    players: '2 人',
+  },
 ];
 
 function App() {
