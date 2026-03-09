@@ -1,0 +1,203 @@
+/* ============================================================
+   Multy Portal - 聚合首页样式
+   ============================================================ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  background: #0f172a;
+  color: #e2e8f0;
+  min-height: 100vh;
+}
+
+/* --- Portal Layout --- */
+
+.portal {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+}
+
+/* --- Header --- */
+
+.portal-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  padding-top: 2rem;
+}
+
+.portal-header h1 {
+  font-size: 3.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.header-icon {
+  -webkit-text-fill-color: initial;
+  font-size: 2.5rem;
+}
+
+.header-subtitle {
+  margin-top: 0.75rem;
+  font-size: 1.15rem;
+  color: #94a3b8;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+}
+
+/* --- Game Grid --- */
+
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+  max-width: 1100px;
+  width: 100%;
+}
+
+/* --- Game Card --- */
+
+.game-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #1e293b;
+  border-radius: 1rem;
+  padding: 2rem;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid #334155;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.game-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--card-color);
+  border-radius: 1rem 1rem 0 0;
+  transition: height 0.3s ease;
+}
+
+.game-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--card-color);
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.5),
+    0 0 0 1px var(--card-color);
+}
+
+.game-card:hover::before {
+  height: 6px;
+}
+
+/* --- Card Icon --- */
+
+.card-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+/* --- Card Content --- */
+
+.card-content h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin-bottom: 0.25rem;
+}
+
+.card-subtitle {
+  display: inline-block;
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.75rem;
+}
+
+.card-description {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #94a3b8;
+  margin-bottom: 1.25rem;
+}
+
+/* --- Card Footer --- */
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid #334155;
+}
+
+.card-players {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.card-action {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--card-color);
+  transition: transform 0.2s ease;
+}
+
+.game-card:hover .card-action {
+  transform: translateX(4px);
+}
+
+/* --- Footer --- */
+
+.portal-footer {
+  margin-top: 3rem;
+  padding: 2rem;
+  text-align: center;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+/* --- Responsive --- */
+
+@media (max-width: 768px) {
+  .portal {
+    padding: 1rem;
+  }
+
+  .portal-header h1 {
+    font-size: 2.5rem;
+  }
+
+  .game-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .game-card {
+    padding: 1.5rem;
+  }
+}

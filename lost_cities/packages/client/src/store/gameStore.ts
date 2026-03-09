@@ -320,7 +320,7 @@ function getDefaultPort(): string {
   if (typeof window !== 'undefined' && window.location.port) {
     return window.location.port;
   }
-  return isLocal ? '8080' : '';
+  return isLocal ? '3005' : '';
 }
 
 function getSocketProtocol(): string {

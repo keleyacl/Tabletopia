@@ -56,6 +56,61 @@ stop_game() {
   echo "  $game_dir stopped."
 }
 
+stop_portal() {
+  echo ""
+  echo "Stopping portal..."
+
+  # Kill vite processes for portal
+  local pids
+  pids=$(pgrep -f "portal.*vite" 2>/dev/null)
+  if [ -n "$pids" ]; then
+    echo "  Killing portal vite processes: $pids"
+    echo "$pids" | xargs kill 2>/dev/null
+  fi
+
+  # Kill npm processes for portal
+  pids=$(pgrep -f "npm.*portal" 2>/dev/null)
+  if [ -n "$pids" ]; then
+    echo "  Killing portal npm processes: $pids"
+    echo "$pids" | xargs kill 2>/dev/null
+  fi
+
+  echo "  portal stopped."
+}
+
+# ============================================================
+# --all mode: stop all games + portal
+# ============================================================
+if [ "$1" = "--all" ]; then
+  echo "==========================="
+  echo "  Multy - Stop All"
+  echo "==========================="
+
+  for game in "${games[@]}"; do
+    if [ "$game" = "portal" ]; then
+      stop_portal
+    else
+      stop_game "$game"
+    fi
+  done
+
+  # Also kill any remaining processes on known ports
+  for port in 3000 3001 3002 3003 3004 3005 4000; do
+    pid=$(lsof -ti :$port 2>/dev/null)
+    if [ -n "$pid" ]; then
+      echo "  Killing process on port $port (PID: $pid)"
+      echo "$pid" | xargs kill 2>/dev/null
+    fi
+  done
+
+  echo ""
+  echo "All projects stopped."
+  exit 0
+fi
+
+# ============================================================
+# Interactive mode
+# ============================================================
 echo "==========================="
 echo "  Multy Game Stopper"
 echo "==========================="
@@ -81,10 +136,19 @@ fi
 
 if [ "$choice" -eq "$ALL_OPTION" ]; then
   for game in "${games[@]}"; do
-    stop_game "$game"
+    if [ "$game" = "portal" ]; then
+      stop_portal
+    else
+      stop_game "$game"
+    fi
   done
 else
-  stop_game "${games[$((choice - 1))]}"
+  selected="${games[$((choice - 1))]}"
+  if [ "$selected" = "portal" ]; then
+    stop_portal
+  else
+    stop_game "$selected"
+  fi
 fi
 
 echo ""

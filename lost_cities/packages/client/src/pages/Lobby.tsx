@@ -109,7 +109,7 @@ const Lobby: React.FC = () => {
                   onChange={(e) => setPendingHost(e.target.value)}
                 />
                 <input
-                  placeholder="8080"
+                  placeholder="3005"
                   value={pendingPort}
                   onChange={(e) => setPendingPort(e.target.value)}
                 />

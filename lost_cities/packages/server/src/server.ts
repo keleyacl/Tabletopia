@@ -5,7 +5,7 @@
 import { WebSocketServer } from 'ws';
 import { setupSocketEvents } from './socketEvents';
 
-const PORT = Number(process.env.PORT) || 8080;
+const PORT = Number(process.env.PORT) || 3005;
 const wss = new WebSocketServer({ port: PORT });
 
 // 设置 Socket 事件
