@@ -49,7 +49,7 @@ start_project() {
 # ============================================================
 if [ "$1" = "--all" ]; then
   echo "==========================="
-  echo "  Multy - Start All"
+  echo "  Tabletopia - Start All"
   echo "==========================="
   echo ""
 
@@ -82,7 +82,7 @@ fi
 # Interactive mode: choose a single game to run (foreground)
 # ============================================================
 echo "==========================="
-echo "  Multy Game Launcher"
+echo "  Tabletopia Game Launcher"
 echo "==========================="
 echo ""
 echo "Which game would you like to run?"

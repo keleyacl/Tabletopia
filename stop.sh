@@ -83,7 +83,7 @@ stop_portal() {
 # ============================================================
 if [ "$1" = "--all" ]; then
   echo "==========================="
-  echo "  Multy - Stop All"
+  echo "  Tabletopia - Stop All"
   echo "==========================="
 
   for game in "${games[@]}"; do
@@ -112,7 +112,7 @@ fi
 # Interactive mode
 # ============================================================
 echo "==========================="
-echo "  Multy Game Stopper"
+echo "  Tabletopia Game Stopper"
 echo "==========================="
 echo ""
 echo "Which game would you like to stop?"

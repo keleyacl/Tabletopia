@@ -1,6 +1,6 @@
-# Multy Portal - 聚合首页
+# Tabletopia Portal - 聚合首页
 
-Multy 桌游合集的聚合入口页面，提供所有游戏的导航。
+Tabletopia 桌游合集的聚合入口页面，提供所有游戏的导航。
 
 ## 功能
 

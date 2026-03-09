@@ -47,7 +47,7 @@ function App() {
       <header className="portal-header">
         <h1>
           <span className="header-icon">🎲</span>
-          Multy
+          Tabletopia
         </h1>
         <p className="header-subtitle">桌游合集 · 在线多人对战平台</p>
       </header>

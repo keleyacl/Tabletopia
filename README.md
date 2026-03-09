@@ -1,4 +1,4 @@
-# Multy - 桌游合集
+# Tabletopia - 桌游合集
 
 在线多人对战桌游平台，包含多款经典桌游的数字化实现。
 
@@ -15,7 +15,7 @@
 ## 项目结构
 
 ```
-Multy/
+Tabletopia/
 ├── portal/              # 聚合首页（游戏入口导航）
 ├── azul/                # 花砖物语
 ├── splendor-duel/       # 璀璨宝石·对决
