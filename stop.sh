@@ -79,77 +79,77 @@ stop_portal() {
 }
 
 # ============================================================
-# --all mode: stop all games + portal
+# --select mode: stop a specific game interactively
 # ============================================================
-if [ "$1" = "--all" ]; then
+if [ "$1" = "--select" ]; then
   echo "==========================="
-  echo "  Tabletopia - Stop All"
+  echo "  Tabletopia Game Stopper"
   echo "==========================="
+  echo ""
+  echo "Which game would you like to stop?"
+  echo ""
 
-  for game in "${games[@]}"; do
-    if [ "$game" = "portal" ]; then
-      stop_portal
-    else
-      stop_game "$game"
-    fi
+  for i in "${!games[@]}"; do
+    echo "  $((i + 1))) ${games[$i]}"
   done
 
-  # Also kill any remaining processes on known ports
-  for port in 3000 3001 3002 3003 3004 3005 4000; do
-    pid=$(lsof -ti :$port 2>/dev/null)
-    if [ -n "$pid" ]; then
-      echo "  Killing process on port $port (PID: $pid)"
-      echo "$pid" | xargs kill 2>/dev/null
-    fi
-  done
+  ALL_OPTION=$((${#games[@]} + 1))
+  echo "  $ALL_OPTION) all (stop all games)"
 
   echo ""
-  echo "All projects stopped."
+  read -p "Enter your choice (1-$ALL_OPTION): " choice
+
+  # Validate input
+  if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt "$ALL_OPTION" ]; then
+    echo "Invalid choice. Exiting."
+    exit 1
+  fi
+
+  if [ "$choice" -eq "$ALL_OPTION" ]; then
+    for game in "${games[@]}"; do
+      if [ "$game" = "portal" ]; then
+        stop_portal
+      else
+        stop_game "$game"
+      fi
+    done
+  else
+    selected="${games[$((choice - 1))]}"
+    if [ "$selected" = "portal" ]; then
+      stop_portal
+    else
+      stop_game "$selected"
+    fi
+  fi
+
+  echo ""
+  echo "Done."
   exit 0
 fi
 
 # ============================================================
-# Interactive mode
+# Default mode: stop all games + portal
 # ============================================================
 echo "==========================="
-echo "  Tabletopia Game Stopper"
+echo "  Tabletopia - Stop All"
 echo "==========================="
-echo ""
-echo "Which game would you like to stop?"
-echo ""
 
-for i in "${!games[@]}"; do
-  echo "  $((i + 1))) ${games[$i]}"
-done
-
-ALL_OPTION=$((${#games[@]} + 1))
-echo "  $ALL_OPTION) all (stop all games)"
-
-echo ""
-read -p "Enter your choice (1-$ALL_OPTION): " choice
-
-# Validate input
-if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt "$ALL_OPTION" ]; then
-  echo "Invalid choice. Exiting."
-  exit 1
-fi
-
-if [ "$choice" -eq "$ALL_OPTION" ]; then
-  for game in "${games[@]}"; do
-    if [ "$game" = "portal" ]; then
-      stop_portal
-    else
-      stop_game "$game"
-    fi
-  done
-else
-  selected="${games[$((choice - 1))]}"
-  if [ "$selected" = "portal" ]; then
+for game in "${games[@]}"; do
+  if [ "$game" = "portal" ]; then
     stop_portal
   else
-    stop_game "$selected"
+    stop_game "$game"
   fi
-fi
+done
+
+# Also kill any remaining processes on known ports
+for port in 3000 3001 3002 3003 3004 3005 4000; do
+  pid=$(lsof -ti :$port 2>/dev/null)
+  if [ -n "$pid" ]; then
+    echo "  Killing process on port $port (PID: $pid)"
+    echo "$pid" | xargs kill 2>/dev/null
+  fi
+done
 
 echo ""
-echo "Done."
+echo "All projects stopped."

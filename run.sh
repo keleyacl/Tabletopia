@@ -45,76 +45,84 @@ start_project() {
 }
 
 # ============================================================
-# --all mode: start all games + portal
+# --select mode: choose a single game to run (foreground)
 # ============================================================
-if [ "$1" = "--all" ]; then
+if [ "$1" = "--select" ]; then
   echo "==========================="
-  echo "  Tabletopia - Start All"
+  echo "  Tabletopia Game Launcher"
   echo "==========================="
   echo ""
+  echo "Which game would you like to run?"
+  echo ""
 
-  # Start all game projects
-  for game in "${games[@]}"; do
-    echo "Starting $game..."
-    start_project "$game"
-    echo ""
+  for i in "${!games[@]}"; do
+    echo "  $((i + 1))) ${games[$i]}"
   done
 
-  # Start portal
-  echo "Starting portal..."
-  start_project "portal"
+  echo ""
+  read -p "Enter your choice (1-${#games[@]}): " choice
+
+  # Validate input
+  if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt ${#games[@]} ]; then
+    echo "Invalid choice. Exiting."
+    exit 1
+  fi
+
+  GAME_DIR="${games[$((choice - 1))]}"
+
+  echo ""
+  echo "Starting $GAME_DIR..."
   echo ""
 
-  echo "==========================="
-  echo "  All projects started!"
-  echo "==========================="
-  echo ""
-  echo "  Portal (首页):        http://localhost:4000"
-  echo "  Azul:                 http://localhost:3000"
-  echo "  Splendor Duel:        http://localhost:3002"
-  echo "  Lost Cities:          http://localhost:3004"
-  echo ""
-  echo "  Use ./stop.sh --all to stop all projects."
+  cd "$SCRIPT_DIR/$GAME_DIR" || { echo "Directory $GAME_DIR not found!"; exit 1; }
+
+  # Install dependencies if node_modules doesn't exist
+  if [ ! -d "node_modules" ]; then
+    echo "Installing dependencies..."
+    npm install
+    echo ""
+  fi
+
+  # Run dev server (starts both server and client concurrently)
+  npm run dev
   exit 0
 fi
 
 # ============================================================
-# Interactive mode: choose a single game to run (foreground)
+# Default mode: start all games + portal
 # ============================================================
 echo "==========================="
-echo "  Tabletopia Game Launcher"
+echo "  Tabletopia - Start All"
 echo "==========================="
 echo ""
-echo "Which game would you like to run?"
-echo ""
 
-for i in "${!games[@]}"; do
-  echo "  $((i + 1))) ${games[$i]}"
-done
-
-echo ""
-read -p "Enter your choice (1-${#games[@]}): " choice
-
-# Validate input
-if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt ${#games[@]} ]; then
-  echo "Invalid choice. Exiting."
-  exit 1
-fi
-
-GAME_DIR="${games[$((choice - 1))]}"
-
-echo ""
-echo "Starting $GAME_DIR..."
-echo ""
-
-cd "$SCRIPT_DIR/$GAME_DIR" || { echo "Directory $GAME_DIR not found!"; exit 1; }
-
-# Install dependencies if node_modules doesn't exist
-if [ ! -d "node_modules" ]; then
-  echo "Installing dependencies..."
-  npm install
+# Clean up any residual processes to avoid port conflicts
+if [ -f "$SCRIPT_DIR/stop.sh" ]; then
+  echo "Cleaning up residual processes..."
+  bash "$SCRIPT_DIR/stop.sh" 2>/dev/null
   echo ""
 fi
 
-# Run dev server (starts both server and client concurrently)
-npm run dev
+# Start all game projects
+for game in "${games[@]}"; do
+  echo "Starting $game..."
+  start_project "$game"
+  sleep 2
+  echo ""
+done
+
+# Start portal
+echo "Starting portal..."
+start_project "portal"
+echo ""
+
+echo "==========================="
+echo "  All projects started!"
+echo "==========================="
+echo ""
+echo "  Portal (首页):        http://localhost:4000"
+echo "  Azul:                 http://localhost:3000"
+echo "  Splendor Duel:        http://localhost:3002"
+echo "  Lost Cities:          http://localhost:3004"
+echo ""
+echo "  Use ./stop.sh to stop all projects."

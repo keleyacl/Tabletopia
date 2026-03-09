@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 3002,
+    strictPort: true,
     proxy: {
       '/socket.io': {
         target: 'http://localhost:3003',

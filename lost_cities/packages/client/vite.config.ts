@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3004,
+    strictPort: true,
     proxy: {
       '/ws': {
         target: 'ws://localhost:3005',
