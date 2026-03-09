@@ -11,3 +11,5 @@ pnpm-debug.log*
 *.log
 coverage/
 .DS_Store
+tsconfig.tsbuildinfo
+*.tsbuildinfo
