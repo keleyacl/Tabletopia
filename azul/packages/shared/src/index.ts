@@ -24,6 +24,10 @@ export {
   type ErrorEvent,
   type PlayerDisconnectedEvent,
   type PlayerReconnectedEvent,
+  type RestartVoteInfo,
+  type RestartVoteUpdateEvent,
+  type RestartVoteRejectedEvent,
+  type GameRestartedEvent,
   type GameEvent,
 } from './types';
 

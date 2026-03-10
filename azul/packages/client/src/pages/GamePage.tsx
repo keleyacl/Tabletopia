@@ -6,6 +6,8 @@ import FactoryCircle from '../components/FactoryCircle';
 import PlayerBoardComponent from '../components/PlayerBoard';
 import ScoreBoard from '../components/ScoreBoard';
 import GameOverModal from '../components/GameOverModal';
+import RestartVoteModal from '../components/RestartVoteModal';
+import { socketService } from '../services/socketService';
 import '../styles/components.css';
 
 // ============================================================
@@ -23,6 +25,7 @@ const GamePage: React.FC = () => {
   const roundScoreDetails = useGameStore((s) => s.roundScoreDetails);
   const dismissRoundScore = useGameStore((s) => s.dismissRoundScore);
   const roomInfo = useRoomStore((s) => s.roomInfo);
+  const restartVote = useGameStore((s) => s.restartVote);
 
   // 如果没有游戏状态，跳回大厅
   useEffect(() => {
@@ -68,6 +71,14 @@ const GamePage: React.FC = () => {
             </span>
           )}
         </div>
+        {!restartVote && roomInfo && (
+          <button
+            className="btn btn-restart"
+            onClick={() => socketService.requestRestart(roomInfo.roomId, myPlayerId)}
+          >
+            重新开始
+          </button>
+        )}
         <ScoreBoard
           players={gameState.players}
           currentPlayerIndex={gameState.currentPlayerIndex}
@@ -173,6 +184,9 @@ const GamePage: React.FC = () => {
 
       {/* 游戏结束弹窗 */}
       <GameOverModal />
+
+      {/* 重新开始投票弹窗 */}
+      <RestartVoteModal />
     </div>
   );
 };

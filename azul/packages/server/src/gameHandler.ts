@@ -14,6 +14,10 @@ import {
   updateGameState,
   markGameStarted,
   canStartGame,
+  requestRestart,
+  voteRestart,
+  clearRestartVotes,
+  resetForNewGame,
   Room,
 } from './roomManager';
 
@@ -240,6 +244,108 @@ function findFirstPlayerHolder(state: GameState): number {
     }
   }
   return -1;
+}
+
+// ============================================================
+// 重新开始游戏处理器
+// ============================================================
+
+/**
+ * 处理重新开始请求
+ */
+export function handleRequestRestart(
+  io: Server,
+  socket: Socket,
+  data: { roomId: string; playerId: string }
+): void {
+  const { roomId, playerId } = data;
+
+  const result = requestRestart(roomId, playerId);
+
+  if ('error' in result) {
+    socket.emit('game:error', { type: 'ERROR', message: result.error });
+    return;
+  }
+
+  // 广播投票状态给所有玩家
+  io.to(roomId).emit('game:restartVoteUpdate', {
+    type: 'RESTART_VOTE_UPDATE',
+    voteInfo: result.voteInfo,
+  });
+
+  // 如果只有一个玩家（理论上不会出现，至少2人），直接重新开始
+  if (result.voteInfo.votedPlayers.length === result.voteInfo.totalPlayers) {
+    executeRestart(io, roomId);
+  }
+
+  console.log(`[Game] 房间 ${roomId} 玩家 ${playerId} 发起了重新开始投票`);
+}
+
+/**
+ * 处理重新开始投票
+ */
+export function handleVoteRestart(
+  io: Server,
+  socket: Socket,
+  data: { roomId: string; playerId: string; agree: boolean }
+): void {
+  const { roomId, playerId, agree } = data;
+
+  const result = voteRestart(roomId, playerId, agree);
+
+  if ('error' in result) {
+    socket.emit('game:error', { type: 'ERROR', message: result.error });
+    return;
+  }
+
+  if ('rejected' in result) {
+    // 投票被拒绝，通知所有玩家
+    io.to(roomId).emit('game:restartVoteRejected', {
+      type: 'RESTART_VOTE_REJECTED',
+      rejectedBy: result.rejectedBy,
+      rejectedByName: result.rejectedByName,
+    });
+    console.log(`[Game] 房间 ${roomId} 重新开始投票被 ${result.rejectedByName} 拒绝`);
+    return;
+  }
+
+  if (result.approved) {
+    // 全部同意，执行重新开始
+    executeRestart(io, roomId);
+    console.log(`[Game] 房间 ${roomId} 全部同意重新开始，开始新一局`);
+  } else {
+    // 更新投票进度
+    io.to(roomId).emit('game:restartVoteUpdate', {
+      type: 'RESTART_VOTE_UPDATE',
+      voteInfo: result.voteInfo,
+    });
+    console.log(`[Game] 房间 ${roomId} 重新开始投票进度: ${result.voteInfo.votedPlayers.length}/${result.voteInfo.totalPlayers}`);
+  }
+}
+
+/**
+ * 执行重新开始游戏
+ */
+function executeRestart(io: Server, roomId: string): void {
+  const room = getRoom(roomId);
+  if (!room) return;
+
+  // 重置房间状态
+  resetForNewGame(roomId);
+
+  // 重新初始化游戏
+  const playerInfos = room.players.map((p) => ({ id: p.id, name: p.name }));
+  const gameState = initializeGame(playerInfos);
+
+  // 更新房间状态
+  markGameStarted(roomId);
+  updateGameState(roomId, gameState);
+
+  // 广播游戏重新开始事件
+  io.to(roomId).emit('game:restarted', {
+    type: 'GAME_RESTARTED',
+    gameState: sanitizeGameState(gameState),
+  });
 }
 
 /**

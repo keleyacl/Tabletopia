@@ -5,6 +5,7 @@ import {
   TileColor,
   RoundScoreDetail,
   FinalScoreDetail,
+  RestartVoteInfo,
 } from '@azul/shared';
 import { getValidPlacements } from '@azul/game-logic';
 
@@ -43,6 +44,8 @@ export interface GameStoreState {
   showGameOver: boolean;
   /** 错误消息 */
   errorMessage: string | null;
+  /** 重新开始投票状态 */
+  restartVote: RestartVoteInfo | null;
 }
 
 export interface GameStoreActions {
@@ -66,6 +69,10 @@ export interface GameStoreActions {
   dismissGameOver: () => void;
   /** 设置错误消息 */
   setError: (message: string | null) => void;
+  /** 设置重新开始投票状态 */
+  setRestartVote: (vote: RestartVoteInfo | null) => void;
+  /** 清除重新开始投票状态 */
+  clearRestartVote: () => void;
   /** 重置游戏状态 */
   resetGame: () => void;
 }
@@ -80,6 +87,7 @@ const initialState: GameStoreState = {
   showRoundScore: false,
   showGameOver: false,
   errorMessage: null,
+  restartVote: null,
 };
 
 export const useGameStore = create<GameStoreState & GameStoreActions>()(
@@ -169,6 +177,18 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
           });
         }, 3000);
       }
+    },
+
+    setRestartVote: (vote: RestartVoteInfo | null) => {
+      set((state) => {
+        state.restartVote = vote;
+      });
+    },
+
+    clearRestartVote: () => {
+      set((state) => {
+        state.restartVote = null;
+      });
     },
 
     resetGame: () => {

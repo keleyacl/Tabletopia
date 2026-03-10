@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import { socketService } from './services/socketService';
 import { useRoomStore } from './store/roomStore';
 import { useGameStore } from './store/gameStore';
@@ -7,6 +7,7 @@ import Lobby from './pages/Lobby';
 import GamePage from './pages/GamePage';
 
 const App: React.FC = () => {
+  const navigate = useNavigate();
   const setConnected = useRoomStore((s) => s.setConnected);
   const updateRoomInfo = useRoomStore((s) => s.updateRoomInfo);
   const setGameStarted = useRoomStore((s) => s.setGameStarted);
@@ -15,6 +16,9 @@ const App: React.FC = () => {
   const setFinalScores = useGameStore((s) => s.setFinalScores);
   const showGameOverModal = useGameStore((s) => s.showGameOverModal);
   const setError = useGameStore((s) => s.setError);
+  const setRestartVote = useGameStore((s) => s.setRestartVote);
+  const clearRestartVote = useGameStore((s) => s.clearRestartVote);
+  const dismissGameOver = useGameStore((s) => s.dismissGameOver);
 
   useEffect(() => {
     // 连接 Socket
@@ -34,6 +38,11 @@ const App: React.FC = () => {
     socketService.on('game:started', (data: any) => {
       setGameStarted();
       updateGameState(data.gameState);
+      // 所有玩家收到事件后自动跳转到游戏页面
+      const roomInfo = useRoomStore.getState().roomInfo;
+      if (roomInfo) {
+        navigate(`/game/${roomInfo.roomId}`);
+      }
     });
 
     // 监听游戏状态更新
@@ -70,6 +79,28 @@ const App: React.FC = () => {
 
     socketService.on('game:playerReconnected', (data: any) => {
       setError(`${data.playerName} 已重连`);
+    });
+
+    // 监听重新开始投票更新
+    socketService.on('game:restartVoteUpdate', (data: any) => {
+      setRestartVote(data.voteInfo);
+    });
+
+    // 监听重新开始投票被拒绝
+    socketService.on('game:restartVoteRejected', (data: any) => {
+      clearRestartVote();
+      setError(`${data.rejectedByName} 拒绝了重新开始`);
+    });
+
+    // 监听游戏重新开始
+    socketService.on('game:restarted', (data: any) => {
+      clearRestartVote();
+      dismissGameOver();
+      updateGameState(data.gameState);
+      const roomInfo = useRoomStore.getState().roomInfo;
+      if (roomInfo) {
+        navigate(`/game/${roomInfo.roomId}`);
+      }
     });
 
     return () => {

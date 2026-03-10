@@ -907,6 +907,144 @@
 }
 
 /* ============================================================
+   重新开始投票
+   ============================================================ */
+
+.btn-restart {
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-restart:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border-highlight);
+}
+
+.restart-vote-modal {
+  max-width: 380px;
+}
+
+.restart-vote-modal .modal-title {
+  text-align: center;
+  color: var(--text-accent);
+  margin-bottom: var(--spacing-md);
+  font-size: 18px;
+}
+
+.restart-vote-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.restart-vote-requester {
+  text-align: center;
+  font-size: 15px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.restart-vote-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.restart-vote-progress-text {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.restart-vote-progress-bar {
+  height: 6px;
+  background: var(--bg-surface);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.restart-vote-progress-fill {
+  height: 100%;
+  background: var(--text-accent);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.restart-vote-players {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.restart-vote-player {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.restart-vote-player.voted {
+  border-left: 3px solid var(--text-success);
+}
+
+.restart-vote-player.pending {
+  border-left: 3px solid var(--border-color);
+}
+
+.restart-vote-player-name {
+  font-weight: 500;
+}
+
+.restart-vote-player-status {
+  font-size: 12px;
+}
+
+.restart-vote-player.voted .restart-vote-player-status {
+  color: var(--text-success);
+}
+
+.restart-vote-player.pending .restart-vote-player-status {
+  color: var(--text-secondary);
+}
+
+.restart-vote-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.restart-vote-actions .btn {
+  flex: 1;
+}
+
+.restart-vote-waiting {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-top: var(--spacing-md);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.game-over-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.game-over-actions .btn {
+  flex: 1;
+}
+
+/* ============================================================
    响应式
    ============================================================ */
 

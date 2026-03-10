@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { socketService } from '../services/socketService';
 import { useRoomStore } from '../store/roomStore';
 import { useGameStore } from '../store/gameStore';
 import '../styles/components.css';
 
 const Lobby: React.FC = () => {
-  const navigate = useNavigate();
   const [playerName, setPlayerName] = useState('');
   const [roomIdInput, setRoomIdInput] = useState('');
   const [mode, setMode] = useState<'menu' | 'create' | 'join'>('menu');
@@ -22,10 +20,9 @@ const Lobby: React.FC = () => {
     setLoading,
     setError,
     setPlayerName: storeSetPlayerName,
-    setGameStarted,
   } = useRoomStore();
 
-  const { setMyPlayerId, updateGameState } = useGameStore();
+  const { setMyPlayerId } = useGameStore();
 
   // 创建房间
   const handleCreateRoom = async () => {
@@ -76,13 +73,6 @@ const Lobby: React.FC = () => {
   const handleStartGame = () => {
     if (!roomInfo) return;
     socketService.startGame(roomInfo.roomId, myPlayerId);
-
-    // 监听游戏开始后跳转
-    socketService.on('game:started', (data: any) => {
-      setGameStarted();
-      updateGameState(data.gameState);
-      navigate(`/game/${roomInfo.roomId}`);
-    });
   };
 
   // 离开房间

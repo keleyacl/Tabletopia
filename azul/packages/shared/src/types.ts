@@ -237,6 +237,41 @@ export interface PlayerReconnectedEvent {
   playerName: string;
 }
 
+// ============================================================
+// 重新开始投票
+// ============================================================
+
+/** 重新开始投票状态 */
+export interface RestartVoteInfo {
+  /** 发起者 playerId */
+  requestedBy: string;
+  /** 发起者名称 */
+  requestedByName: string;
+  /** 已同意的玩家 ID 列表 */
+  votedPlayers: string[];
+  /** 总玩家数 */
+  totalPlayers: number;
+}
+
+/** 重新开始投票更新事件 */
+export interface RestartVoteUpdateEvent {
+  type: 'RESTART_VOTE_UPDATE';
+  voteInfo: RestartVoteInfo;
+}
+
+/** 重新开始投票被拒绝事件 */
+export interface RestartVoteRejectedEvent {
+  type: 'RESTART_VOTE_REJECTED';
+  rejectedBy: string;
+  rejectedByName: string;
+}
+
+/** 游戏重新开始事件 */
+export interface GameRestartedEvent {
+  type: 'GAME_RESTARTED';
+  gameState: GameState;
+}
+
 /** 所有服务端事件的联合类型 */
 export type GameEvent =
   | RoomCreatedEvent
@@ -247,4 +282,7 @@ export type GameEvent =
   | GameEndedEvent
   | ErrorEvent
   | PlayerDisconnectedEvent
-  | PlayerReconnectedEvent;
+  | PlayerReconnectedEvent
+  | RestartVoteUpdateEvent
+  | RestartVoteRejectedEvent
+  | GameRestartedEvent;

@@ -222,6 +222,20 @@ class SocketService {
   }
 
   /**
+   * 请求重新开始游戏
+   */
+  requestRestart(roomId: string, playerId: string): void {
+    this.socket?.emit('game:requestRestart', { roomId, playerId });
+  }
+
+  /**
+   * 重新开始投票
+   */
+  voteRestart(roomId: string, playerId: string, agree: boolean): void {
+    this.socket?.emit('game:voteRestart', { roomId, playerId, agree });
+  }
+
+  /**
    * 重连
    */
   reconnect(

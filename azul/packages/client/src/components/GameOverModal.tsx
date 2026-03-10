@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FinalScoreDetail } from '@azul/shared';
 import { useGameStore } from '../store/gameStore';
 import { useRoomStore } from '../store/roomStore';
+import { socketService } from '../services/socketService';
 
 // ============================================================
 // 游戏结束弹窗
@@ -15,6 +16,9 @@ const GameOverModal: React.FC = () => {
   const dismissGameOver = useGameStore((s) => s.dismissGameOver);
   const resetGame = useGameStore((s) => s.resetGame);
   const resetRoom = useRoomStore((s) => s.resetRoom);
+  const roomInfo = useRoomStore((s) => s.roomInfo);
+  const myPlayerId = useGameStore((s) => s.myPlayerId);
+  const restartVote = useGameStore((s) => s.restartVote);
 
   if (!showGameOver || !finalScores) return null;
 
@@ -30,6 +34,12 @@ const GameOverModal: React.FC = () => {
     resetGame();
     resetRoom();
     navigate('/');
+  };
+
+  const handleRequestRestart = () => {
+    if (roomInfo) {
+      socketService.requestRestart(roomInfo.roomId, myPlayerId);
+    }
   };
 
   return (
@@ -84,8 +94,13 @@ const GameOverModal: React.FC = () => {
           </table>
         </div>
 
-        <div className="modal-actions">
-          <button className="btn btn-primary btn-large" onClick={handleBackToLobby}>
+        <div className="modal-actions game-over-actions">
+          {!restartVote && (
+            <button className="btn btn-primary btn-large" onClick={handleRequestRestart}>
+              再来一局
+            </button>
+          )}
+          <button className="btn btn-secondary btn-large" onClick={handleBackToLobby}>
             返回大厅
           </button>
         </div>

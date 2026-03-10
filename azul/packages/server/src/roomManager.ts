@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { GameState, RoomInfo, MIN_PLAYERS, MAX_PLAYERS } from '@azul/shared';
+import { GameState, RoomInfo, RestartVoteInfo, MIN_PLAYERS, MAX_PLAYERS } from '@azul/shared';
 
 // ============================================================
 // 房间数据结构
@@ -18,6 +18,8 @@ export interface Room {
   players: RoomPlayer[];
   gameStarted: boolean;
   gameState: GameState | null;
+  restartVotes: Set<string>;
+  restartRequestedBy: string | null;
 }
 
 // 内存存储所有房间
@@ -73,6 +75,8 @@ export function createRoom(
     players: [player],
     gameStarted: false,
     gameState: null,
+    restartVotes: new Set(),
+    restartRequestedBy: null,
   };
 
   rooms.set(roomId, room);
@@ -264,6 +268,122 @@ export function canStartGame(roomId: string, playerId: string): string | null {
   if (room.players.length < MIN_PLAYERS)
     return `至少需要 ${MIN_PLAYERS} 名玩家`;
   return null;
+}
+
+// ============================================================
+// 重新开始投票管理
+// ============================================================
+
+/**
+ * 发起重新开始请求（发起者自动投同意票）
+ * @returns 错误信息或投票信息
+ */
+export function requestRestart(
+  roomId: string,
+  playerId: string
+): { error: string } | { voteInfo: RestartVoteInfo } {
+  const room = rooms.get(roomId);
+  if (!room) return { error: '房间不存在' };
+
+  const player = room.players.find((p) => p.id === playerId);
+  if (!player) return { error: '你不在该房间中' };
+
+  if (room.restartRequestedBy) {
+    return { error: '已有一个重新开始投票正在进行中' };
+  }
+
+  // 发起投票，发起者自动同意
+  room.restartRequestedBy = playerId;
+  room.restartVotes = new Set([playerId]);
+
+  return {
+    voteInfo: getRestartVoteInfo(room),
+  };
+}
+
+/**
+ * 玩家投票（同意或拒绝）
+ * @returns 投票结果
+ */
+export function voteRestart(
+  roomId: string,
+  playerId: string,
+  agree: boolean
+): { error: string } | { rejected: true; rejectedBy: string; rejectedByName: string } | { approved: boolean; voteInfo: RestartVoteInfo } {
+  const room = rooms.get(roomId);
+  if (!room) return { error: '房间不存在' };
+
+  const player = room.players.find((p) => p.id === playerId);
+  if (!player) return { error: '你不在该房间中' };
+
+  if (!room.restartRequestedBy) {
+    return { error: '当前没有重新开始投票' };
+  }
+
+  if (room.restartVotes.has(playerId)) {
+    return { error: '你已经投过票了' };
+  }
+
+  if (!agree) {
+    // 拒绝：清除投票状态
+    const rejectedByName = player.name;
+    clearRestartVotes(roomId);
+    return { rejected: true, rejectedBy: playerId, rejectedByName };
+  }
+
+  // 同意
+  room.restartVotes.add(playerId);
+
+  const voteInfo = getRestartVoteInfo(room);
+  const approved = room.restartVotes.size === room.players.length;
+
+  return { approved, voteInfo };
+}
+
+/**
+ * 检查是否所有玩家都同意重新开始
+ */
+export function isRestartApproved(roomId: string): boolean {
+  const room = rooms.get(roomId);
+  if (!room) return false;
+  return room.restartVotes.size === room.players.length;
+}
+
+/**
+ * 清除重新开始投票状态
+ */
+export function clearRestartVotes(roomId: string): void {
+  const room = rooms.get(roomId);
+  if (room) {
+    room.restartVotes = new Set();
+    room.restartRequestedBy = null;
+  }
+}
+
+/**
+ * 重置房间游戏状态以开始新一局（保留玩家）
+ */
+export function resetForNewGame(roomId: string): void {
+  const room = rooms.get(roomId);
+  if (room) {
+    room.gameStarted = false;
+    room.gameState = null;
+    room.restartVotes = new Set();
+    room.restartRequestedBy = null;
+  }
+}
+
+/**
+ * 获取重新开始投票信息
+ */
+function getRestartVoteInfo(room: Room): RestartVoteInfo {
+  const requester = room.players.find((p) => p.id === room.restartRequestedBy);
+  return {
+    requestedBy: room.restartRequestedBy || '',
+    requestedByName: requester?.name || '未知玩家',
+    votedPlayers: Array.from(room.restartVotes),
+    totalPlayers: room.players.length,
+  };
 }
 
 /**

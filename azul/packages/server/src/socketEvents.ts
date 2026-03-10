@@ -11,6 +11,8 @@ import {
   handleStartGame,
   handleTakeFromFactory,
   handleTakeFromCenter,
+  handleRequestRestart,
+  handleVoteRestart,
 } from './gameHandler';
 
 /**
@@ -163,6 +165,22 @@ export function registerSocketEvents(io: Server): void {
           ...data,
           color: data.color as any,
         });
+      }
+    );
+
+    // 请求重新开始
+    socket.on(
+      'game:requestRestart',
+      (data: { roomId: string; playerId: string }) => {
+        handleRequestRestart(io, socket, data);
+      }
+    );
+
+    // 重新开始投票
+    socket.on(
+      'game:voteRestart',
+      (data: { roomId: string; playerId: string; agree: boolean }) => {
+        handleVoteRestart(io, socket, data);
       }
     );
 
