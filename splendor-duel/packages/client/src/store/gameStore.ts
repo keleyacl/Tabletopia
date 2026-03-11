@@ -79,6 +79,10 @@ interface GameStore extends UIState {
   /** 跳过可选阶段 */
   doSkipOptionalPhase: () => void;
 
+  // --- 网络同步 ---
+  /** 直接设置游戏状态（用于服务器同步） */
+  setGameState: (state: GameState) => void;
+
   // --- UI 动作 ---
   /** 清除选中 */
   clearSelection: () => void;
@@ -278,6 +282,19 @@ export const useGameStore = create<GameStore>()(
           state.showDiscardModal = true;
         }
         if (state.gameState.winner !== null) {
+          state.showVictoryOverlay = true;
+        }
+      });
+    },
+
+    // --- 网络同步 ---
+    setGameState: (newGameState: GameState) => {
+      set((state) => {
+        state.gameState = newGameState as any;
+        state.selectedCoords = [];
+        state.highlightedSlots = [];
+        state.showDiscardModal = false;
+        if (newGameState.winner !== null) {
           state.showVictoryOverlay = true;
         }
       });
