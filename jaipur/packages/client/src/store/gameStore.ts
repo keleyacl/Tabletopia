@@ -9,6 +9,9 @@ import type {
   GameAction,
   TradeGoodType,
   ChatMessage,
+  RoomListItem,
+  JoinRequest,
+  RoomVisibility,
 } from '@jaipur/shared';
 import { socketService } from '../services/socketService';
 
@@ -48,6 +51,14 @@ interface GameStore {
   chatMessages: ChatMessage[];
   actionHistory: string[];
 
+  // --- 大厅状态 ---
+  roomList: RoomListItem[];
+  roomListLoading: boolean;
+  pendingJoinRequest: { roomCode: string; status: 'pending' | 'approved' | 'rejected' } | null;
+  incomingJoinRequest: JoinRequest | null;
+  showJoinRequestModal: boolean;
+  roomVisibility: RoomVisibility;
+
   // --- 弹窗控制 ---
   showRulesModal: boolean;
   showGameMenu: boolean;
@@ -57,6 +68,11 @@ interface GameStore {
   connect: () => void;
   createRoom: () => void;
   joinRoom: (roomCode: string) => void;
+  fetchRoomList: () => void;
+  sendJoinRequest: (roomCode: string) => void;
+  cancelJoinRequest: () => void;
+  respondToJoinRequest: (requestId: string, approved: boolean) => void;
+  setRoomVisibility: (visibility: RoomVisibility) => void;
   reconnect: () => void;
   toggleMarketSelection: (index: number) => void;
   toggleHandSelection: (index: number) => void;
@@ -97,6 +113,12 @@ export const useGameStore = create<GameStore>()(
     actionHistory: [],
     showRulesModal: false,
     showGameMenu: false,
+    roomList: [],
+    roomListLoading: false,
+    pendingJoinRequest: null,
+    incomingJoinRequest: null,
+    showJoinRequestModal: false,
+    roomVisibility: 'public' as RoomVisibility,
 
     // --- 动作方法 ---
 
@@ -107,16 +129,19 @@ export const useGameStore = create<GameStore>()(
     },
 
     connect: () => {
-      socketService.connect();
+      // 先初始化 socket（不连接），注册所有事件监听器后再连接
+      // 这样可以避免 connect 事件在监听器注册前触发的竞态问题
+      const rawSocket = (socketService as any).init ? socketService.init() : null;
 
       // 连接/断开事件（原生 socket.io 事件，不走类型化接口）
-      const rawSocket = (socketService as any).socket;
       if (rawSocket) {
         rawSocket.on('connect', () => {
           set((s) => { s.connected = true; });
+          console.log('[Store] Socket 已连接');
         });
         rawSocket.on('disconnect', () => {
           set((s) => { s.connected = false; });
+          console.log('[Store] Socket 已断开');
         });
       }
 
@@ -212,11 +237,65 @@ export const useGameStore = create<GameStore>()(
           s.chatMessages.push(data);
         });
       });
+
+      // ============================================================
+      // 大厅事件
+      // ============================================================
+
+      // 收到房间列表
+      socketService.on('lobby:room_list', (data) => {
+        console.log(`[Store] 收到房间列表更新: ${data.rooms.length} 个房间`, JSON.stringify(data.rooms));
+        console.log(`[Store] 当前 roomState: ${get().roomState}`);
+        set((s) => {
+          s.roomList = data.rooms;
+          s.roomListLoading = false;
+        });
+      });
+
+      // 房主收到加入申请
+      socketService.on('lobby:join_request_received', (data) => {
+        set((s) => {
+          s.incomingJoinRequest = data;
+          s.showJoinRequestModal = true;
+        });
+      });
+
+      // 申请被同意
+      socketService.on('lobby:join_approved', (data) => {
+        set((s) => {
+          s.roomCode = data.roomCode;
+          s.playerIndex = data.playerIndex;
+          s.reconnectToken = data.reconnectToken;
+          s.roomState = 'waiting';
+          s.pendingJoinRequest = null;
+        });
+        get().addToast('房主已同意你的加入申请', 'success');
+      });
+
+      // 申请被拒绝
+      socketService.on('lobby:join_rejected', (data) => {
+        set((s) => {
+          s.pendingJoinRequest = null;
+        });
+        get().addToast(data.reason || '房主拒绝了你的加入申请', 'error');
+      });
+
+      // 申请被取消（房主视角）
+      socketService.on('lobby:request_cancelled', (_data) => {
+        set((s) => {
+          s.incomingJoinRequest = null;
+          s.showJoinRequestModal = false;
+        });
+        get().addToast('对方已取消加入申请', 'info');
+      });
+
+      // 所有事件监听器注册完毕后，再建立连接
+      socketService.connect();
     },
 
     createRoom: () => {
-      const { name } = get();
-      socketService.emit('room:create', { name });
+      const { name, roomVisibility } = get();
+      socketService.emit('room:create', { name, visibility: roomVisibility });
     },
 
     joinRoom: (roomCode: string) => {
@@ -334,6 +413,57 @@ export const useGameStore = create<GameStore>()(
     removeToast: (id: string) => {
       set((s) => {
         s.toasts = s.toasts.filter((t) => t.id !== id);
+      });
+    },
+
+    // ============================================================
+    // 大厅动作方法
+    // ============================================================
+
+    fetchRoomList: () => {
+      console.log(`[Store] 请求获取房间列表, connected: ${socketService.connected}, roomState: ${get().roomState}`);
+      set((s) => { s.roomListLoading = true; });
+      socketService.emit('lobby:list');
+
+      // 超时保护：3秒内未收到响应则自动恢复 loading 状态
+      setTimeout(() => {
+        const { roomListLoading } = get();
+        if (roomListLoading) {
+          set((s) => { s.roomListLoading = false; });
+          console.warn('[Store] 获取房间列表超时');
+        }
+      }, 3000);
+    },
+
+    sendJoinRequest: (roomCode: string) => {
+      const { name } = get();
+      socketService.emit('lobby:join_request', { roomCode, name });
+      set((s) => {
+        s.pendingJoinRequest = { roomCode, status: 'pending' };
+      });
+    },
+
+    cancelJoinRequest: () => {
+      const { pendingJoinRequest } = get();
+      if (pendingJoinRequest) {
+        socketService.emit('lobby:cancel_request', { roomCode: pendingJoinRequest.roomCode });
+        set((s) => {
+          s.pendingJoinRequest = null;
+        });
+      }
+    },
+
+    respondToJoinRequest: (requestId: string, approved: boolean) => {
+      socketService.emit('lobby:join_response', { requestId, approved });
+      set((s) => {
+        s.incomingJoinRequest = null;
+        s.showJoinRequestModal = false;
+      });
+    },
+
+    setRoomVisibility: (visibility: RoomVisibility) => {
+      set((s) => {
+        s.roomVisibility = visibility;
       });
     },
 

@@ -236,15 +236,54 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+// ============================================================
+// 大厅与房间列表相关类型
+// ============================================================
+
+/** 房间可见性 */
+export type RoomVisibility = 'public' | 'private';
+
+/** 房间列表项（用于大厅展示） */
+export interface RoomListItem {
+  /** 房间码 */
+  roomCode: string;
+  /** 房主昵称 */
+  hostName: string;
+  /** 当前玩家数 */
+  playerCount: number;
+  /** 最大玩家数 */
+  maxPlayers: number;
+  /** 房间状态 */
+  status: 'waiting' | 'playing';
+  /** 创建时间（ISO 字符串） */
+  createdAt: string;
+}
+
+/** 加入申请 */
+export interface JoinRequest {
+  /** 申请唯一 ID */
+  requestId: string;
+  /** 申请者昵称 */
+  playerName: string;
+  /** 目标房间码 */
+  roomCode: string;
+  /** 申请时间戳 */
+  timestamp: number;
+}
+
 /** Socket 事件：客户端 → 服务端 */
 export interface ClientToServerEvents {
-  'room:create': (data: { name: string }) => void;
+  'room:create': (data: { name: string; visibility: RoomVisibility }) => void;
   'room:join': (data: { name: string; roomCode: string }) => void;
   'room:reconnect': (data: { reconnectToken: string }) => void;
   'game:action': (data: { action: GameAction }) => void;
   'game:next_round': () => void;
   'game:rematch': () => void;
   'chat:message': (data: { content: string }) => void;
+  'lobby:list': () => void;
+  'lobby:join_request': (data: { roomCode: string; name: string }) => void;
+  'lobby:join_response': (data: { requestId: string; approved: boolean }) => void;
+  'lobby:cancel_request': (data: { roomCode: string }) => void;
 }
 
 /** Socket 事件：服务端 → 客户端 */
@@ -262,4 +301,9 @@ export interface ServerToClientEvents {
   'game:match_ended': (data: { playerView: PlayerView; finalScores: [number, number]; matchWinner: 0 | 1 | null; roundResults: RoundResult[] }) => void;
   'game:rematch_started': (data: { playerView: PlayerView }) => void;
   'chat:message': (data: ChatMessage) => void;
+  'lobby:room_list': (data: { rooms: RoomListItem[] }) => void;
+  'lobby:join_request_received': (data: JoinRequest) => void;
+  'lobby:join_approved': (data: { roomCode: string; playerIndex: 0 | 1; reconnectToken: string }) => void;
+  'lobby:join_rejected': (data: { roomCode: string; reason?: string }) => void;
+  'lobby:request_cancelled': (data: { requestId: string }) => void;
 }

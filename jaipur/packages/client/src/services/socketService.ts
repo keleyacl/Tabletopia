@@ -12,17 +12,29 @@ class SocketService {
   private socket: Socket<ClientToServerEvents, ServerToClientEvents> | null = null;
 
   /**
-   * 连接到服务器
+   * 初始化 socket 实例（不立即连接）
+   * 允许先注册事件监听器，再调用 connect() 建立连接
    */
-  connect(): void {
-    if (this.socket?.connected) return;
+  init(): Socket<ClientToServerEvents, ServerToClientEvents> {
+    if (this.socket) return this.socket;
 
     this.socket = io('http://localhost:3007', {
       transports: ['websocket', 'polling'],
       autoConnect: false,
     });
 
-    this.socket.connect();
+    return this.socket;
+  }
+
+  /**
+   * 连接到服务器（需先调用 init()）
+   */
+  connect(): void {
+    if (!this.socket) {
+      this.init();
+    }
+    if (this.socket?.connected) return;
+    this.socket!.connect();
   }
 
   /**

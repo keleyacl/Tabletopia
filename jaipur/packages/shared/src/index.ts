@@ -20,6 +20,9 @@ export type {
   ChatMessage,
   ClientToServerEvents,
   ServerToClientEvents,
+  RoomVisibility,
+  RoomListItem,
+  JoinRequest,
 } from './types';
 
 // 导出运行时常量（来自 types）

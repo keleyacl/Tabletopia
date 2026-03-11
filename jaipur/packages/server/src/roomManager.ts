@@ -3,12 +3,20 @@
 // ============================================================
 
 import { nanoid } from 'nanoid';
-import { GameState } from '@jaipur/shared';
+import { GameState, RoomVisibility, RoomListItem } from '@jaipur/shared';
 
 interface RoomPlayer {
   name: string;
   playerIndex: 0 | 1;
   reconnectToken: string;
+}
+
+/** 待处理的加入申请 */
+interface PendingRequest {
+  requestId: string;
+  playerName: string;
+  socketId: string;
+  timestamp: number;
 }
 
 interface Room {
@@ -17,6 +25,14 @@ interface Room {
   gameState: GameState | null;
   createdAt: Date;
   matchFinished: boolean;
+  /** 房间可见性：公开或私密 */
+  visibility: RoomVisibility;
+  /** 房主的 socketId */
+  hostSocketId: string;
+  /** 房主昵称 */
+  hostName: string;
+  /** 待处理的加入申请（key 为 requestId） */
+  pendingRequests: Map<string, PendingRequest>;
 }
 
 class RoomManager {
@@ -43,7 +59,7 @@ class RoomManager {
   /**
    * 创建房间
    */
-  createRoom(socketId: string, name: string): { roomCode: string; reconnectToken: string } {
+  createRoom(socketId: string, name: string, visibility: RoomVisibility = 'public'): { roomCode: string; reconnectToken: string } {
     const roomCode = this.generateRoomCode();
     const reconnectToken = nanoid();
     const playerIndex: 0 | 1 = 0;
@@ -63,11 +79,15 @@ class RoomManager {
       gameState: null,
       createdAt: new Date(),
       matchFinished: false,
+      visibility,
+      hostSocketId: socketId,
+      hostName: name,
+      pendingRequests: new Map(),
     };
 
     this.rooms.set(roomCode, room);
     this.socketIdToRoomCode.set(socketId, roomCode);
-    console.log(`[Room] 创建房间 ${roomCode}，玩家: ${name} (${socketId})`);
+    console.log(`[Room] 创建房间 ${roomCode}（${visibility}），玩家: ${name} (${socketId})`);
 
     return { roomCode, reconnectToken };
   }
@@ -212,6 +232,164 @@ class RoomManager {
    */
   getAllRooms(): Room[] {
     return Array.from(this.rooms.values());
+  }
+
+  /**
+   * 获取公开房间列表（用于大厅展示）
+   * 返回所有公开房间，包含等待中和游戏中的房间
+   */
+  getPublicRoomList(): RoomListItem[] {
+    const publicRooms: RoomListItem[] = [];
+    for (const room of this.rooms.values()) {
+      if (room.visibility === 'public') {
+        publicRooms.push({
+          roomCode: room.roomCode,
+          hostName: room.hostName,
+          playerCount: room.players.size,
+          maxPlayers: 2,
+          status: room.gameState ? 'playing' : 'waiting',
+          createdAt: room.createdAt.toISOString(),
+        });
+      }
+    }
+    return publicRooms;
+  }
+
+  /**
+   * 添加加入申请
+   */
+  addJoinRequest(roomCode: string, requestId: string, playerName: string, socketId: string): {
+    success: boolean;
+    error?: string;
+  } {
+    const room = this.rooms.get(roomCode);
+    if (!room) {
+      return { success: false, error: '房间不存在' };
+    }
+    if (room.visibility !== 'public') {
+      return { success: false, error: '该房间为私密房间，请使用房间码加入' };
+    }
+    if (room.players.size >= 2) {
+      return { success: false, error: '房间已满' };
+    }
+    if (room.gameState) {
+      return { success: false, error: '游戏已开始，无法加入' };
+    }
+
+    // 检查是否已有来自同一 socket 的申请
+    for (const req of room.pendingRequests.values()) {
+      if (req.socketId === socketId) {
+        return { success: false, error: '你已经发送过加入申请' };
+      }
+    }
+
+    room.pendingRequests.set(requestId, {
+      requestId,
+      playerName,
+      socketId,
+      timestamp: Date.now(),
+    });
+
+    console.log(`[Room] 玩家 ${playerName} 申请加入房间 ${roomCode}`);
+    return { success: true };
+  }
+
+  /**
+   * 移除加入申请
+   */
+  removeJoinRequest(roomCode: string, requestId: string): PendingRequest | null {
+    const room = this.rooms.get(roomCode);
+    if (!room) return null;
+
+    const request = room.pendingRequests.get(requestId);
+    if (!request) return null;
+
+    room.pendingRequests.delete(requestId);
+    console.log(`[Room] 移除玩家 ${request.playerName} 对房间 ${roomCode} 的加入申请`);
+    return request;
+  }
+
+  /**
+   * 通过 socketId 移除加入申请（用于取消申请）
+   */
+  removeJoinRequestBySocketId(roomCode: string, socketId: string): PendingRequest | null {
+    const room = this.rooms.get(roomCode);
+    if (!room) return null;
+
+    for (const [requestId, request] of room.pendingRequests.entries()) {
+      if (request.socketId === socketId) {
+        room.pendingRequests.delete(requestId);
+        console.log(`[Room] 玩家 ${request.playerName} 取消了对房间 ${roomCode} 的加入申请`);
+        return request;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * 同意加入申请，将玩家加入房间
+   */
+  approveJoinRequest(roomCode: string, requestId: string): {
+    success: boolean;
+    playerIndex?: 0 | 1;
+    reconnectToken?: string;
+    socketId?: string;
+    error?: string;
+  } {
+    const room = this.rooms.get(roomCode);
+    if (!room) {
+      return { success: false, error: '房间不存在' };
+    }
+
+    const request = room.pendingRequests.get(requestId);
+    if (!request) {
+      return { success: false, error: '申请不存在或已过期' };
+    }
+
+    if (room.players.size >= 2) {
+      room.pendingRequests.delete(requestId);
+      return { success: false, error: '房间已满' };
+    }
+
+    // 将申请者加入房间
+    const reconnectToken = nanoid();
+    const playerIndex: 0 | 1 = room.players.size === 0 ? 0 : 1;
+
+    room.players.set(request.socketId, {
+      name: request.playerName,
+      playerIndex,
+      reconnectToken,
+    });
+
+    this.socketIdToRoomCode.set(request.socketId, roomCode);
+    room.pendingRequests.delete(requestId);
+
+    console.log(`[Room] 房主同意玩家 ${request.playerName} 加入房间 ${roomCode}`);
+    return { success: true, playerIndex, reconnectToken, socketId: request.socketId };
+  }
+
+  /**
+   * 获取房主的 socketId
+   */
+  getHostSocketId(roomCode: string): string | null {
+    const room = this.rooms.get(roomCode);
+    if (!room) return null;
+
+    // 如果房主已重连（socketId 变更），需要通过 hostSocketId 查找
+    // 但 hostSocketId 可能已过期，所以也检查 players 中 playerIndex === 0 的玩家
+    if (room.players.has(room.hostSocketId)) {
+      return room.hostSocketId;
+    }
+
+    // 回退：查找 playerIndex === 0 的玩家作为房主
+    for (const [socketId, player] of room.players.entries()) {
+      if (player.playerIndex === 0) {
+        room.hostSocketId = socketId; // 更新缓存
+        return socketId;
+      }
+    }
+
+    return null;
   }
 }
 
