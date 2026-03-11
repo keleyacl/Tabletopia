@@ -4,6 +4,7 @@
 
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
+import type { RoomListItem, JoinRequest, RoomVisibility, RoomInfo } from '@splendor/shared';
 
 interface RoomState {
   /** 房间 ID */
@@ -16,18 +17,40 @@ interface RoomState {
   opponentConnected: boolean;
   /** 错误信息 */
   error: string | null;
+  /** 玩家名称 */
+  playerName: string;
+  /** 是否为房主 */
+  isHost: boolean;
+  /** 房间信息 */
+  roomInfo: RoomInfo | null;
+  /** 公开房间列表 */
+  roomList: RoomListItem[];
+  /** 房间列表加载中 */
+  roomListLoading: boolean;
+  /** 待处理的加入申请（申请者视角） */
+  pendingJoinRequest: { roomId: string; status: 'pending' | 'approved' | 'rejected' } | null;
+  /** 收到的加入申请（房主视角） */
+  incomingJoinRequest: JoinRequest | null;
+  /** 是否显示加入申请弹窗 */
+  showJoinRequestModal: boolean;
+  /** 房间可见性 */
+  roomVisibility: RoomVisibility;
 }
 
 interface RoomStore extends RoomState {
-  /** 设置房间信息 */
   setRoom: (roomId: string, playerId: 0 | 1) => void;
-  /** 设置连接状态 */
   setConnectionStatus: (status: 'disconnected' | 'connecting' | 'connected') => void;
-  /** 设置对手连接状态 */
   setOpponentConnected: (connected: boolean) => void;
-  /** 设置错误 */
   setError: (error: string | null) => void;
-  /** 重置房间状态 */
+  setPlayerName: (name: string) => void;
+  setIsHost: (isHost: boolean) => void;
+  setRoomInfo: (info: RoomInfo | null) => void;
+  setRoomList: (rooms: RoomListItem[]) => void;
+  setRoomListLoading: (loading: boolean) => void;
+  setPendingJoinRequest: (request: { roomId: string; status: 'pending' | 'approved' | 'rejected' } | null) => void;
+  setIncomingJoinRequest: (request: JoinRequest | null) => void;
+  setShowJoinRequestModal: (show: boolean) => void;
+  setRoomVisibility: (visibility: RoomVisibility) => void;
   reset: () => void;
 }
 
@@ -37,6 +60,15 @@ const initialState: RoomState = {
   connectionStatus: 'disconnected',
   opponentConnected: false,
   error: null,
+  playerName: '',
+  isHost: false,
+  roomInfo: null,
+  roomList: [],
+  roomListLoading: false,
+  pendingJoinRequest: null,
+  incomingJoinRequest: null,
+  showJoinRequestModal: false,
+  roomVisibility: 'public',
 };
 
 export const useRoomStore = create<RoomStore>()(
@@ -65,6 +97,66 @@ export const useRoomStore = create<RoomStore>()(
     setError: (error) => {
       set((state) => {
         state.error = error;
+      });
+      if (error) {
+        setTimeout(() => {
+          set((state) => { state.error = null; });
+        }, 5000);
+      }
+    },
+
+    setPlayerName: (name: string) => {
+      set((state) => {
+        state.playerName = name;
+      });
+    },
+
+    setIsHost: (isHost: boolean) => {
+      set((state) => {
+        state.isHost = isHost;
+      });
+    },
+
+    setRoomInfo: (info) => {
+      set((state) => {
+        state.roomInfo = info;
+      });
+    },
+
+    setRoomList: (rooms: RoomListItem[]) => {
+      set((state) => {
+        state.roomList = rooms;
+        state.roomListLoading = false;
+      });
+    },
+
+    setRoomListLoading: (loading: boolean) => {
+      set((state) => {
+        state.roomListLoading = loading;
+      });
+    },
+
+    setPendingJoinRequest: (request) => {
+      set((state) => {
+        state.pendingJoinRequest = request;
+      });
+    },
+
+    setIncomingJoinRequest: (request) => {
+      set((state) => {
+        state.incomingJoinRequest = request;
+      });
+    },
+
+    setShowJoinRequestModal: (show: boolean) => {
+      set((state) => {
+        state.showJoinRequestModal = show;
+      });
+    },
+
+    setRoomVisibility: (visibility: RoomVisibility) => {
+      set((state) => {
+        state.roomVisibility = visibility;
       });
     },
 

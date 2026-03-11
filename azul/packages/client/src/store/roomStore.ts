@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { RoomInfo } from '@azul/shared';
+import { RoomInfo, RoomListItem, JoinRequest, RoomVisibility } from '@azul/shared';
 
 // ============================================================
 // 房间状态 Store
@@ -23,6 +23,18 @@ export interface RoomStoreState {
   isLoading: boolean;
   /** 错误消息 */
   errorMessage: string | null;
+  /** 公开房间列表 */
+  roomList: RoomListItem[];
+  /** 房间列表加载中 */
+  roomListLoading: boolean;
+  /** 待处理的加入申请（申请者视角） */
+  pendingJoinRequest: { roomId: string; status: 'pending' | 'approved' | 'rejected' } | null;
+  /** 收到的加入申请（房主视角） */
+  incomingJoinRequest: JoinRequest | null;
+  /** 是否显示加入申请弹窗 */
+  showJoinRequestModal: boolean;
+  /** 房间可见性 */
+  roomVisibility: RoomVisibility;
 }
 
 export interface RoomStoreActions {
@@ -42,6 +54,18 @@ export interface RoomStoreActions {
   setError: (message: string | null) => void;
   /** 重置房间状态 */
   resetRoom: () => void;
+  /** 设置房间列表 */
+  setRoomList: (rooms: RoomListItem[]) => void;
+  /** 设置房间列表加载状态 */
+  setRoomListLoading: (loading: boolean) => void;
+  /** 设置待处理的加入申请 */
+  setPendingJoinRequest: (request: { roomId: string; status: 'pending' | 'approved' | 'rejected' } | null) => void;
+  /** 设置收到的加入申请 */
+  setIncomingJoinRequest: (request: JoinRequest | null) => void;
+  /** 设置是否显示加入申请弹窗 */
+  setShowJoinRequestModal: (show: boolean) => void;
+  /** 设置房间可见性 */
+  setRoomVisibility: (visibility: RoomVisibility) => void;
 }
 
 const initialState: RoomStoreState = {
@@ -53,6 +77,12 @@ const initialState: RoomStoreState = {
   isConnected: false,
   isLoading: false,
   errorMessage: null,
+  roomList: [],
+  roomListLoading: false,
+  pendingJoinRequest: null,
+  incomingJoinRequest: null,
+  showJoinRequestModal: false,
+  roomVisibility: 'public',
 };
 
 export const useRoomStore = create<RoomStoreState & RoomStoreActions>()(
@@ -122,6 +152,43 @@ export const useRoomStore = create<RoomStoreState & RoomStoreActions>()(
 
     resetRoom: () => {
       set(() => ({ ...initialState }));
+    },
+
+    setRoomList: (rooms: RoomListItem[]) => {
+      set((state) => {
+        state.roomList = rooms;
+        state.roomListLoading = false;
+      });
+    },
+
+    setRoomListLoading: (loading: boolean) => {
+      set((state) => {
+        state.roomListLoading = loading;
+      });
+    },
+
+    setPendingJoinRequest: (request) => {
+      set((state) => {
+        state.pendingJoinRequest = request;
+      });
+    },
+
+    setIncomingJoinRequest: (request) => {
+      set((state) => {
+        state.incomingJoinRequest = request;
+      });
+    },
+
+    setShowJoinRequestModal: (show: boolean) => {
+      set((state) => {
+        state.showJoinRequestModal = show;
+      });
+    },
+
+    setRoomVisibility: (visibility: RoomVisibility) => {
+      set((state) => {
+        state.roomVisibility = visibility;
+      });
     },
   }))
 );

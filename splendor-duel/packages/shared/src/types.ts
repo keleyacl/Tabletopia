@@ -184,3 +184,37 @@ export type GameAction =
   | DiscardTokensAction
   | ResolveAbilityAction
   | EndTurnAction;
+
+// ============================================================
+// 房间与大厅相关类型
+// ============================================================
+
+/** 房间可见性 */
+export type RoomVisibility = 'public' | 'private';
+
+/** 房间信息 */
+export interface RoomInfo {
+  roomId: string;
+  players: { id: number; name: string }[];
+  hostId: number;
+  gameStarted: boolean;
+  visibility: RoomVisibility;
+}
+
+/** 房间列表项（用于大厅展示） */
+export interface RoomListItem {
+  roomId: string;
+  hostName: string;
+  playerCount: number;
+  maxPlayers: number;
+  status: 'waiting' | 'playing';
+  createdAt: string;
+}
+
+/** 加入申请 */
+export interface JoinRequest {
+  requestId: string;
+  playerName: string;
+  roomId: string;
+  timestamp: number;
+}

@@ -3,7 +3,7 @@
 // ============================================================
 
 import { io, Socket } from 'socket.io-client';
-import { GameState, GameAction } from '@splendor/shared';
+import { GameState, GameAction, RoomListItem, RoomInfo } from '@splendor/shared';
 
 class SocketService {
   private socket: Socket | null = null;
@@ -55,6 +55,39 @@ class SocketService {
     this.socket.on('room:game_started', (state: GameState) => {
       this.emit('room:game_started', state);
     });
+
+    // 大厅事件监听
+    this.socket.on('lobby:room_list', (data: { rooms: RoomListItem[] }) => {
+      this.emit('lobby:room_list', data);
+    });
+
+    this.socket.on('lobby:join_request_received', (data: any) => {
+      this.emit('lobby:join_request_received', data);
+    });
+
+    this.socket.on('lobby:join_approved', (data: any) => {
+      this.emit('lobby:join_approved', data);
+    });
+
+    this.socket.on('lobby:join_rejected', (data: any) => {
+      this.emit('lobby:join_rejected', data);
+    });
+
+    this.socket.on('lobby:request_cancelled', (data: any) => {
+      this.emit('lobby:request_cancelled', data);
+    });
+
+    this.socket.on('room:created', (data: any) => {
+      this.emit('room:created', data);
+    });
+
+    this.socket.on('room:joined', (data: any) => {
+      this.emit('room:joined', data);
+    });
+
+    this.socket.on('room:error', (data: any) => {
+      this.emit('room:error', data);
+    });
   }
 
   /**
@@ -71,15 +104,15 @@ class SocketService {
   /**
    * 创建房间
    */
-  createRoom(): void {
-    this.socket?.emit('room:create');
+  createRoom(playerName: string = '玩家1', visibility: string = 'public'): void {
+    this.socket?.emit('room:create', { playerName, visibility });
   }
 
   /**
    * 加入房间
    */
-  joinRoom(roomId: string): void {
-    this.socket?.emit('room:join', { roomId });
+  joinRoom(roomId: string, playerName: string = '玩家2'): void {
+    this.socket?.emit('room:join', { roomId, playerName });
   }
 
   /**
@@ -87,6 +120,26 @@ class SocketService {
    */
   sendAction(action: GameAction): void {
     this.socket?.emit('game:action', action);
+  }
+
+  // ========================================
+  // 大厅操作
+  // ========================================
+
+  fetchRoomList(): void {
+    this.socket?.emit('lobby:list');
+  }
+
+  sendJoinRequest(roomId: string, name: string): void {
+    this.socket?.emit('lobby:join_request', { roomId, name });
+  }
+
+  cancelJoinRequest(roomId: string): void {
+    this.socket?.emit('lobby:cancel_request', { roomId });
+  }
+
+  respondToJoinRequest(requestId: string, approved: boolean): void {
+    this.socket?.emit('lobby:join_response', { requestId, approved });
   }
 
   /**

@@ -5,6 +5,8 @@ import {
   TileColor,
   RoundScoreDetail,
   FinalScoreDetail,
+  RoomListItem,
+  JoinRequest,
 } from '@azul/shared';
 
 // ============================================================
@@ -117,7 +119,7 @@ class SocketService {
   /**
    * 创建房间
    */
-  createRoom(playerName: string): Promise<{
+  createRoom(playerName: string, visibility: string = 'public'): Promise<{
     success: boolean;
     roomInfo?: RoomInfo;
     playerId?: string;
@@ -131,7 +133,7 @@ class SocketService {
 
       this.socket.emit(
         'room:create',
-        { playerName },
+        { playerName, visibility },
         (response: any) => {
           resolve(response);
         }
@@ -261,6 +263,38 @@ class SocketService {
         }
       );
     });
+  }
+
+  // ========================================
+  // 大厅操作
+  // ========================================
+
+  /**
+   * 获取公开房间列表
+   */
+  fetchRoomList(): void {
+    this.socket?.emit('lobby:list');
+  }
+
+  /**
+   * 发送加入申请
+   */
+  sendJoinRequest(roomId: string, name: string): void {
+    this.socket?.emit('lobby:join_request', { roomId, name });
+  }
+
+  /**
+   * 取消加入申请
+   */
+  cancelJoinRequest(roomId: string): void {
+    this.socket?.emit('lobby:cancel_request', { roomId });
+  }
+
+  /**
+   * 响应加入申请（房主）
+   */
+  respondToJoinRequest(requestId: string, approved: boolean): void {
+    this.socket?.emit('lobby:join_response', { requestId, approved });
   }
 }
 

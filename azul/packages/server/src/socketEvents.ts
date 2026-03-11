@@ -1,4 +1,5 @@
 import { Server, Socket } from 'socket.io';
+import { v4 as uuidv4 } from 'uuid';
 import {
   createRoom,
   joinRoom,
@@ -6,6 +7,12 @@ import {
   findRoomBySocketId,
   updatePlayerConnection,
   getRoomInfo,
+  getPublicRoomList,
+  getHostSocketId,
+  addJoinRequest,
+  approveJoinRequest,
+  removeJoinRequest,
+  removeJoinRequestBySocketId,
 } from './roomManager';
 import {
   handleStartGame,
@@ -19,6 +26,30 @@ import {
  * 注册所有 Socket.IO 事件
  */
 export function registerSocketEvents(io: Server): void {
+  // 广播房间列表更新
+  function broadcastRoomList() {
+    const rooms = getPublicRoomList();
+    io.emit('lobby:room_list', { rooms });
+  }
+
+  // 处理玩家离开房间
+  function handlePlayerLeave(
+    socket: Socket,
+    roomId: string,
+    playerId: string
+  ): void {
+    const updatedRoomInfo = leaveRoom(roomId, playerId);
+    socket.leave(roomId);
+    if (updatedRoomInfo) {
+      io.to(roomId).emit('room:updated', {
+        type: 'ROOM_UPDATED',
+        roomInfo: updatedRoomInfo,
+      });
+    }
+    broadcastRoomList();
+    console.log(`[Room] 玩家 ${playerId} 离开房间 ${roomId}`);
+  }
+
   io.on('connection', (socket: Socket) => {
     console.log(`[Socket] 客户端连接: ${socket.id}`);
 
@@ -29,7 +60,7 @@ export function registerSocketEvents(io: Server): void {
     // 创建房间
     socket.on(
       'room:create',
-      (data: { playerName: string }, callback?: (response: unknown) => void) => {
+      (data: { playerName: string; visibility?: string }, callback?: (response: unknown) => void) => {
         const { playerName } = data;
 
         if (!playerName || playerName.trim().length === 0) {
@@ -39,7 +70,7 @@ export function registerSocketEvents(io: Server): void {
           return;
         }
 
-        const result = createRoom(playerName.trim(), socket.id);
+        const result = createRoom(playerName.trim(), socket.id, (data.visibility as any) || 'public');
 
         // 加入 Socket.IO 房间
         socket.join(result.roomInfo.roomId);
@@ -53,6 +84,8 @@ export function registerSocketEvents(io: Server): void {
 
         if (callback) callback(response);
         else socket.emit('room:created', response);
+
+        broadcastRoomList();
 
         console.log(
           `[Room] 房间 ${result.roomInfo.roomId} 已创建，房主: ${playerName}`
@@ -111,6 +144,8 @@ export function registerSocketEvents(io: Server): void {
           roomInfo: result.roomInfo,
         });
 
+        broadcastRoomList();
+
         console.log(
           `[Room] ${playerName} 加入房间 ${result.roomInfo.roomId}`
         );
@@ -120,7 +155,7 @@ export function registerSocketEvents(io: Server): void {
     // 离开房间
     socket.on('room:leave', (data: { roomId: string; playerId: string }) => {
       const { roomId, playerId } = data;
-      handlePlayerLeave(io, socket, roomId, playerId);
+      handlePlayerLeave(socket, roomId, playerId);
     });
 
     // ========================================
@@ -185,6 +220,101 @@ export function registerSocketEvents(io: Server): void {
     );
 
     // ========================================
+    // 大厅事件
+    // ========================================
+
+    // 获取公开房间列表
+    socket.on('lobby:list', () => {
+      const rooms = getPublicRoomList();
+      socket.emit('lobby:room_list', { rooms });
+    });
+
+    // 发送加入申请
+    socket.on('lobby:join_request', (data: { roomId: string; name: string }) => {
+      const requestId = uuidv4();
+      const result = addJoinRequest(data.roomId, requestId, data.name, socket.id);
+
+      if (!result.success) {
+        socket.emit('room:error', { type: 'ERROR', message: result.error || '发送申请失败' });
+        return;
+      }
+
+      const hostSocketId = getHostSocketId(data.roomId);
+      if (hostSocketId) {
+        io.to(hostSocketId).emit('lobby:join_request_received', {
+          requestId,
+          playerName: data.name,
+          roomId: data.roomId,
+          timestamp: Date.now(),
+        });
+      }
+    });
+
+    // 房主响应加入申请
+    socket.on('lobby:join_response', (data: { requestId: string; approved: boolean }) => {
+      const found = findRoomBySocketId(socket.id);
+      if (!found) return;
+
+      const { room } = found;
+      const hostSocketId = getHostSocketId(room.id);
+      if (hostSocketId !== socket.id) {
+        socket.emit('room:error', { type: 'ERROR', message: '只有房主可以审批加入申请' });
+        return;
+      }
+
+      if (data.approved) {
+        const result = approveJoinRequest(room.id, data.requestId);
+        if (!result.success) {
+          socket.emit('room:error', { type: 'ERROR', message: result.error || '审批失败' });
+          return;
+        }
+
+        const approvedSocket = io.sockets.sockets.get(result.socketId!);
+        if (approvedSocket) {
+          approvedSocket.join(room.id);
+        }
+
+        io.to(result.socketId!).emit('lobby:join_approved', {
+          roomInfo: result.roomInfo,
+          playerId: result.playerId,
+        });
+
+        socket.to(room.id).emit('room:updated', {
+          type: 'ROOM_UPDATED',
+          roomInfo: result.roomInfo,
+        });
+
+        socket.emit('room:updated', {
+          type: 'ROOM_UPDATED',
+          roomInfo: result.roomInfo,
+        });
+
+        broadcastRoomList();
+      } else {
+        const request = removeJoinRequest(room.id, data.requestId);
+        if (request) {
+          io.to(request.socketId).emit('lobby:join_rejected', {
+            roomId: room.id,
+            reason: '房主拒绝了你的加入申请',
+          });
+        }
+      }
+    });
+
+    // 取消加入申请
+    socket.on('lobby:cancel_request', (data: { roomId: string }) => {
+      const request = removeJoinRequestBySocketId(data.roomId, socket.id);
+      if (request) {
+        const hostSocketId = getHostSocketId(data.roomId);
+        if (hostSocketId) {
+          io.to(hostSocketId).emit('lobby:request_cancelled', {
+            requestId: request.requestId,
+          });
+        }
+      }
+    });
+
+    // ========================================
     // 连接管理
     // ========================================
 
@@ -213,7 +343,7 @@ export function registerSocketEvents(io: Server): void {
           );
         } else {
           // 游戏未开始，直接移除玩家
-          handlePlayerLeave(io, socket, room.id, playerId);
+          handlePlayerLeave(socket, room.id, playerId);
         }
       }
     });
@@ -280,29 +410,4 @@ export function registerSocketEvents(io: Server): void {
       socket.emit('pong');
     });
   });
-}
-
-/**
- * 处理玩家离开房间
- */
-function handlePlayerLeave(
-  io: Server,
-  socket: Socket,
-  roomId: string,
-  playerId: string
-): void {
-  const updatedRoomInfo = leaveRoom(roomId, playerId);
-
-  // 离开 Socket.IO 房间
-  socket.leave(roomId);
-
-  if (updatedRoomInfo) {
-    // 通知房间内其他玩家
-    io.to(roomId).emit('room:updated', {
-      type: 'ROOM_UPDATED',
-      roomInfo: updatedRoomInfo,
-    });
-  }
-
-  console.log(`[Room] 玩家 ${playerId} 离开房间 ${roomId}`);
 }

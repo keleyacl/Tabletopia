@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { GameState, RoomInfo, RestartVoteInfo, MIN_PLAYERS, MAX_PLAYERS } from '@azul/shared';
+import { GameState, RoomInfo, RestartVoteInfo, MIN_PLAYERS, MAX_PLAYERS, RoomVisibility, RoomListItem } from '@azul/shared';
 
 // ============================================================
 // 房间数据结构
@@ -12,6 +12,13 @@ export interface RoomPlayer {
   connected: boolean;
 }
 
+export interface PendingRequest {
+  requestId: string;
+  playerName: string;
+  socketId: string;
+  timestamp: number;
+}
+
 export interface Room {
   id: string;
   hostId: string;
@@ -20,6 +27,9 @@ export interface Room {
   gameState: GameState | null;
   restartVotes: Set<string>;
   restartRequestedBy: string | null;
+  visibility: RoomVisibility;
+  createdAt: Date;
+  pendingRequests: Map<string, PendingRequest>;
 }
 
 // 内存存储所有房间
@@ -57,7 +67,8 @@ function generateRoomId(): string {
  */
 export function createRoom(
   hostName: string,
-  socketId: string
+  socketId: string,
+  visibility: RoomVisibility = 'public'
 ): { roomInfo: RoomInfo; playerId: string } {
   const roomId = generateRoomId();
   const playerId = uuidv4();
@@ -77,6 +88,9 @@ export function createRoom(
     gameState: null,
     restartVotes: new Set(),
     restartRequestedBy: null,
+    visibility,
+    createdAt: new Date(),
+    pendingRequests: new Map(),
   };
 
   rooms.set(roomId, room);
@@ -387,6 +401,137 @@ function getRestartVoteInfo(room: Room): RestartVoteInfo {
 }
 
 /**
+ * 获取公开房间列表
+ */
+export function getPublicRoomList(): RoomListItem[] {
+  const publicRooms: RoomListItem[] = [];
+  for (const room of rooms.values()) {
+    if (room.visibility === 'public') {
+      publicRooms.push({
+        roomId: room.id,
+        hostName: room.players.find(p => p.id === room.hostId)?.name || '未知',
+        playerCount: room.players.length,
+        maxPlayers: MAX_PLAYERS,
+        status: room.gameStarted ? 'playing' : 'waiting',
+        createdAt: room.createdAt.toISOString(),
+      });
+    }
+  }
+  return publicRooms;
+}
+
+/**
+ * 获取房主的 socketId
+ */
+export function getHostSocketId(roomId: string): string | null {
+  const room = rooms.get(roomId);
+  if (!room) return null;
+  const host = room.players.find(p => p.id === room.hostId);
+  return host?.socketId || null;
+}
+
+/**
+ * 添加加入申请
+ */
+export function addJoinRequest(
+  roomId: string,
+  requestId: string,
+  playerName: string,
+  socketId: string
+): { success: boolean; error?: string } {
+  const room = rooms.get(roomId);
+  if (!room) return { success: false, error: '房间不存在' };
+  if (room.visibility !== 'public') return { success: false, error: '该房间为私密房间，请使用房间号加入' };
+  if (room.players.length >= MAX_PLAYERS) return { success: false, error: '房间已满' };
+  if (room.gameStarted) return { success: false, error: '游戏已开始，无法加入' };
+
+  for (const req of room.pendingRequests.values()) {
+    if (req.socketId === socketId) {
+      return { success: false, error: '你已经发送过加入申请' };
+    }
+  }
+
+  room.pendingRequests.set(requestId, {
+    requestId,
+    playerName,
+    socketId,
+    timestamp: Date.now(),
+  });
+  return { success: true };
+}
+
+/**
+ * 同意加入申请
+ */
+export function approveJoinRequest(
+  roomId: string,
+  requestId: string
+): { success: boolean; playerId?: string; roomInfo?: RoomInfo; socketId?: string; error?: string } {
+  const room = rooms.get(roomId);
+  if (!room) return { success: false, error: '房间不存在' };
+
+  const request = room.pendingRequests.get(requestId);
+  if (!request) return { success: false, error: '申请不存在或已过期' };
+
+  if (room.players.length >= MAX_PLAYERS) {
+    room.pendingRequests.delete(requestId);
+    return { success: false, error: '房间已满' };
+  }
+
+  const playerId = uuidv4();
+  const player: RoomPlayer = {
+    id: playerId,
+    name: request.playerName,
+    socketId: request.socketId,
+    connected: true,
+  };
+
+  room.players.push(player);
+  socketToRoom.set(request.socketId, { roomId, playerId });
+  room.pendingRequests.delete(requestId);
+
+  return {
+    success: true,
+    playerId,
+    roomInfo: toRoomInfo(room),
+    socketId: request.socketId,
+  };
+}
+
+/**
+ * 删除指定加入申请
+ */
+export function removeJoinRequest(
+  roomId: string,
+  requestId: string
+): PendingRequest | null {
+  const room = rooms.get(roomId);
+  if (!room) return null;
+  const request = room.pendingRequests.get(requestId);
+  if (!request) return null;
+  room.pendingRequests.delete(requestId);
+  return request;
+}
+
+/**
+ * 按 socketId 删除加入申请
+ */
+export function removeJoinRequestBySocketId(
+  roomId: string,
+  socketId: string
+): PendingRequest | null {
+  const room = rooms.get(roomId);
+  if (!room) return null;
+  for (const [reqId, req] of room.pendingRequests.entries()) {
+    if (req.socketId === socketId) {
+      room.pendingRequests.delete(reqId);
+      return req;
+    }
+  }
+  return null;
+}
+
+/**
  * 将 Room 转换为 RoomInfo（不暴露内部数据）
  */
 function toRoomInfo(room: Room): RoomInfo {
@@ -395,5 +540,6 @@ function toRoomInfo(room: Room): RoomInfo {
     players: room.players.map((p) => ({ id: p.id, name: p.name })),
     hostId: room.hostId,
     gameStarted: room.gameStarted,
+    visibility: room.visibility,
   };
 }
