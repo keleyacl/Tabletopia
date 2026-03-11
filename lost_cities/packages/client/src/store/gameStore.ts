@@ -10,6 +10,9 @@ import type {
   Card,
   Color,
   ChatMessage,
+  RoomListItem,
+  JoinRequest,
+  RoomVisibility,
 } from '@lost-cities/shared';
 import { COLOR_ORDER, COLOR_INFO, ERROR_MESSAGE_MAP } from '@lost-cities/shared';
 import { scoreExpedition } from '@lost-cities/game-logic';
@@ -237,6 +240,14 @@ interface GameStoreState {
   reconnectCode: string;
   roundsTotal: string;
 
+  // --- 大厅 ---
+  roomList: RoomListItem[];
+  roomListLoading: boolean;
+  pendingJoinRequest: { roomCode: string; status: 'pending' | 'approved' | 'rejected' } | null;
+  incomingJoinRequest: JoinRequest | null;
+  showJoinRequestModal: boolean;
+  visibility: RoomVisibility;
+
   // --- 游戏 UI ---
   selectedCardId: number | null;
   phaseAction: string | null;
@@ -284,9 +295,16 @@ interface GameStoreState {
   setCopied: (v: boolean) => void;
   setInviteCopied: (v: boolean) => void;
 
+  setVisibility: (v: RoomVisibility) => void;
+
   pushToast: (text: string) => void;
   removeToast: (id: number) => void;
   pushActionHistory: (text: string) => void;
+
+  fetchRoomList: () => void;
+  sendJoinRequest: (roomCode: string) => void;
+  cancelJoinRequest: () => void;
+  respondToJoinRequest: (requestId: string, approved: boolean) => void;
 
   applyServerAddress: () => void;
   initSocket: () => void;
@@ -359,6 +377,13 @@ export const useGameStore = create<GameStoreState>()(
         : '',
     roundsTotal: '3',
 
+    roomList: [],
+    roomListLoading: false,
+    pendingJoinRequest: null,
+    incomingJoinRequest: null,
+    showJoinRequestModal: false,
+    visibility: 'public' as RoomVisibility,
+
     selectedCardId: null,
     phaseAction: null,
     roundContinueSent: false,
@@ -401,6 +426,42 @@ export const useGameStore = create<GameStoreState>()(
     setRoundResultSeenKey: (key) => set({ roundResultSeenKey: key }),
     setCopied: (v) => set({ copied: v }),
     setInviteCopied: (v) => set({ inviteCopied: v }),
+    setVisibility: (v) => set({ visibility: v }),
+
+    // --- 大厅动作 ---
+    fetchRoomList: () => {
+      set({ roomListLoading: true });
+      socketService.send('lobby:list');
+      // 3秒超时保护
+      setTimeout(() => {
+        if (get().roomListLoading) {
+          set({ roomListLoading: false });
+        }
+      }, 3000);
+    },
+
+    sendJoinRequest: (roomCode) => {
+      const { name } = get();
+      socketService.send('lobby:join_request', {
+        roomCode,
+        name: name || 'Guest',
+      });
+      set({ pendingJoinRequest: { roomCode, status: 'pending' } });
+    },
+
+    cancelJoinRequest: () => {
+      const { pendingJoinRequest } = get();
+      if (!pendingJoinRequest) return;
+      socketService.send('lobby:cancel_request', {
+        roomCode: pendingJoinRequest.roomCode,
+      });
+      set({ pendingJoinRequest: null });
+    },
+
+    respondToJoinRequest: (requestId, approved) => {
+      socketService.send('lobby:join_response', { requestId, approved });
+      set({ incomingJoinRequest: null, showJoinRequestModal: false });
+    },
 
     // --- Toast ---
     pushToast: (text) => {
@@ -417,7 +478,7 @@ export const useGameStore = create<GameStoreState>()(
 
     removeToast: (id) => {
       set((state) => {
-        state.toasts = state.toasts.filter((t) => t.id !== id);
+        state.toasts = state.toasts.filter((t: Toast) => t.id !== id);
       });
     },
 
@@ -516,6 +577,62 @@ export const useGameStore = create<GameStoreState>()(
         if (item.senderId && item.senderId !== rs?.you) {
           get().pushToast(`${chatEntry.senderName}：${chatEntry.text}`);
         }
+      }
+
+      // --- 大厅消息处理 ---
+      if (type === 'lobby:room_list') {
+        set({
+          roomList: payload?.rooms ?? [],
+          roomListLoading: false,
+        });
+      }
+
+      if (type === 'lobby:join_request_received') {
+        set({
+          incomingJoinRequest: {
+            requestId: payload?.requestId ?? '',
+            playerName: payload?.playerName ?? 'Guest',
+            roomCode: payload?.roomCode ?? '',
+            timestamp: payload?.timestamp ?? Date.now(),
+          },
+          showJoinRequestModal: true,
+        });
+      }
+
+      if (type === 'lobby:join_approved') {
+        set({
+          pendingJoinRequest: null,
+          roomCode: payload?.roomCode ?? '',
+        });
+        // 保存 reconnect token
+        if (payload?.reconnectToken) {
+          localStorage.setItem('lostcities-token', payload.reconnectToken);
+          set({ reconnectToken: payload.reconnectToken });
+        }
+        get().pushToast('加入申请已通过！');
+      }
+
+      if (type === 'lobby:join_rejected') {
+        set((state) => {
+          if (state.pendingJoinRequest) {
+            state.pendingJoinRequest = {
+              ...state.pendingJoinRequest,
+              status: 'rejected',
+            };
+          }
+        });
+        get().pushToast(payload?.reason || '加入申请被拒绝');
+        // 3秒后清除拒绝状态
+        setTimeout(() => {
+          set({ pendingJoinRequest: null });
+        }, 3000);
+      }
+
+      if (type === 'lobby:request_cancelled') {
+        set({
+          incomingJoinRequest: null,
+          showJoinRequestModal: false,
+        });
       }
     },
 
@@ -625,10 +742,11 @@ export const useGameStore = create<GameStoreState>()(
 
     // --- 游戏动作 ---
     createRoom: () => {
-      const { name, roundsTotal } = get();
+      const { name, roundsTotal, visibility } = get();
       socketService.send('room:create', {
         name: name || 'Guest',
         roundsTotal,
+        visibility,
       });
     },
 

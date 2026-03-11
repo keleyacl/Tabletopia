@@ -9,6 +9,8 @@ import {
   ActionResult,
   RoomStateView,
   PlayerView,
+  RoomListItem,
+  RoomVisibility,
 } from '@lost-cities/shared';
 import {
   createGameState,
@@ -27,9 +29,21 @@ export interface RoomPlayer {
   disconnectedAt?: number;
 }
 
+/** 待处理的加入申请 */
+export interface PendingRequest {
+  requestId: string;
+  playerName: string;
+  socketId: string;
+}
+
 /** 房间 */
 export interface Room {
   code: string;
+  visibility: RoomVisibility;
+  hostId: string;
+  hostName: string;
+  createdAt: Date;
+  pendingRequests: Map<string, PendingRequest>;
   players: RoomPlayer[];
   sockets: Map<string, WebSocket>;
   reconnectTokens: Map<string, string>;
@@ -50,9 +64,17 @@ function normalizeRounds(value: unknown): number {
 /**
  * 创建房间
  */
-export function createRoom(roundsTotal?: unknown): Room {
+export function createRoom(
+  roundsTotal?: unknown,
+  visibility: RoomVisibility = 'private'
+): Room {
   return {
     code: createRoomCode(),
+    visibility,
+    hostId: '',
+    hostName: '',
+    createdAt: new Date(),
+    pendingRequests: new Map(),
     players: [],
     sockets: new Map(),
     reconnectTokens: new Map(),
@@ -174,4 +196,127 @@ export function reconnectPlayer(
   delete player.disconnectedAt;
   room.sockets.set(playerId, socket);
   return { ok: true, playerId };
+}
+
+// ============================================================
+// 大厅功能
+// ============================================================
+
+/**
+ * 获取公开房间列表
+ */
+export function getPublicRoomList(rooms: Map<string, Room>): RoomListItem[] {
+  const publicRooms: RoomListItem[] = [];
+  for (const room of rooms.values()) {
+    if (room.visibility === 'public') {
+      const connectedCount = room.players.filter(
+        (p) => !p.disconnectedAt
+      ).length;
+      publicRooms.push({
+        roomCode: room.code,
+        hostName: room.hostName,
+        playerCount: connectedCount,
+        maxPlayers: 2,
+        status: room.players.length >= 2 ? 'playing' : 'waiting',
+        createdAt: room.createdAt.toISOString(),
+      });
+    }
+  }
+  return publicRooms;
+}
+
+/**
+ * 添加加入申请
+ */
+export function addJoinRequest(
+  room: Room,
+  requestId: string,
+  playerName: string,
+  socketId: string
+): { ok: boolean; error?: string } {
+  if (room.visibility !== 'public') {
+    return { ok: false, error: 'Room is not public' };
+  }
+  if (room.players.length >= 2) {
+    return { ok: false, error: 'Room is full' };
+  }
+  // 检查是否已有来自同一 socket 的申请
+  for (const req of room.pendingRequests.values()) {
+    if (req.socketId === socketId) {
+      return { ok: false, error: 'Already requested' };
+    }
+  }
+  room.pendingRequests.set(requestId, {
+    requestId,
+    playerName,
+    socketId,
+  });
+  return { ok: true };
+}
+
+/**
+ * 同意加入申请
+ */
+export function approveJoinRequest(
+  room: Room,
+  requestId: string,
+  socket: WebSocket
+): {
+  ok: boolean;
+  player?: RoomPlayer;
+  token?: string;
+  socketId?: string;
+  error?: string;
+} {
+  const request = room.pendingRequests.get(requestId);
+  if (!request) {
+    return { ok: false, error: 'Request not found' };
+  }
+  if (room.players.length >= 2) {
+    room.pendingRequests.delete(requestId);
+    return { ok: false, error: 'Room is full' };
+  }
+  room.pendingRequests.delete(requestId);
+  const result = addPlayer(room, socket, request.playerName);
+  if (!result.ok) {
+    return { ok: false, error: result.error };
+  }
+  return {
+    ok: true,
+    player: result.player,
+    token: result.token,
+    socketId: request.socketId,
+  };
+}
+
+/**
+ * 拒绝加入申请
+ */
+export function rejectJoinRequest(
+  room: Room,
+  requestId: string
+): { ok: boolean; socketId?: string; error?: string } {
+  const request = room.pendingRequests.get(requestId);
+  if (!request) {
+    return { ok: false, error: 'Request not found' };
+  }
+  const socketId = request.socketId;
+  room.pendingRequests.delete(requestId);
+  return { ok: true, socketId };
+}
+
+/**
+ * 取消加入申请（申请者主动取消）
+ */
+export function cancelJoinRequest(
+  room: Room,
+  socketId: string
+): { ok: boolean; requestId?: string; error?: string } {
+  for (const [reqId, req] of room.pendingRequests.entries()) {
+    if (req.socketId === socketId) {
+      room.pendingRequests.delete(reqId);
+      return { ok: true, requestId: reqId };
+    }
+  }
+  return { ok: false, error: 'No pending request found' };
 }

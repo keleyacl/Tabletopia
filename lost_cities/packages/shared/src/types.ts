@@ -126,6 +126,31 @@ export interface PlayerView {
 }
 
 // ============================================================
+// 大厅类型
+// ============================================================
+
+/** 房间可见性 */
+export type RoomVisibility = 'public' | 'private';
+
+/** 房间列表项（用于大厅展示） */
+export interface RoomListItem {
+  roomCode: string;
+  hostName: string;
+  playerCount: number;
+  maxPlayers: number;
+  status: 'waiting' | 'playing';
+  createdAt: string;
+}
+
+/** 加入申请 */
+export interface JoinRequest {
+  requestId: string;
+  playerName: string;
+  roomCode: string;
+  timestamp: number;
+}
+
+// ============================================================
 // 房间类型
 // ============================================================
 
@@ -188,7 +213,11 @@ export type ClientMessageType =
   | 'room:reconnect'
   | 'game:action'
   | 'game:restart'
-  | 'room:chat';
+  | 'room:chat'
+  | 'lobby:list'
+  | 'lobby:join_request'
+  | 'lobby:join_response'
+  | 'lobby:cancel_request';
 
 /** 客户端消息 */
 export interface ClientMessage {
@@ -202,7 +231,12 @@ export type ServerMessageType =
   | 'game:state'
   | 'room:token'
   | 'room:chat'
-  | 'error';
+  | 'error'
+  | 'lobby:room_list'
+  | 'lobby:join_request_received'
+  | 'lobby:join_approved'
+  | 'lobby:join_rejected'
+  | 'lobby:request_cancelled';
 
 /** 服务端消息 */
 export interface ServerMessage {
