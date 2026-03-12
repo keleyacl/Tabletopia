@@ -11,7 +11,7 @@ export {
   createEmptyDiscards,
   createRoundState,
   createGameState,
-} from './gameInit';
+} from './gameInit.js';
 
 // 计分逻辑
 export {
@@ -20,17 +20,17 @@ export {
   calcMatchWins,
   roundWinner,
   isGameOver,
-} from './gameScoring';
+} from './gameScoring.js';
 
 // 游戏动作
 export {
   canPlayToExpedition,
   getPlayerView,
   applyAction,
-} from './gameActions';
+} from './gameActions.js';
 
 // 工具函数
 export {
   cloneState,
   getTopDiscard,
-} from './utils';
+} from './utils.js';

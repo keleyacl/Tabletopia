@@ -2,7 +2,7 @@
 // 斋浦尔 (Jaipur) - 游戏常量
 // ============================================================
 
-import type { GoodType, TradeGoodType } from './types';
+import type { GoodType, TradeGoodType } from './types.js';
 
 // ============================================================
 // 牌组定义

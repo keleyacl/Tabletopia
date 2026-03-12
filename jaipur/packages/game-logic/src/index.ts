@@ -5,7 +5,7 @@ export {
   initializeBonusTokens,
   initializeGame,
   initializeNewRound,
-} from './gameInit';
+} from './gameInit.js';
 
 // 导出游戏动作函数
 export {
@@ -16,14 +16,14 @@ export {
   exchange,
   sellGoods,
   applyAction,
-} from './gameActions';
+} from './gameActions.js';
 
 // 导出结束判断函数
 export {
   checkGameEnd,
   calculateFinalScores,
   getPlayerView,
-} from './gameEnd';
+} from './gameEnd.js';
 
 // 导出工具函数
-export { shuffle, cloneState } from './utils';
+export { shuffle, cloneState } from './utils.js';

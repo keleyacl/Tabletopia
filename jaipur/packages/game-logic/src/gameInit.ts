@@ -15,7 +15,7 @@ import {
   TRADE_GOODS,
   ROUNDS_TO_WIN,
 } from '@jaipur/shared';
-import { shuffle } from './utils';
+import { shuffle } from './utils.js';
 
 /**
  * 创建完整的牌组（55 张）

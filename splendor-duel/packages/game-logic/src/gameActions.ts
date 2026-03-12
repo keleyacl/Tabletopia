@@ -21,15 +21,15 @@ import {
   removeGemsFromBoard,
   refillBoard as refillBoardSlots,
   checkSameColorCount,
-} from './boardLogic';
+} from './boardLogic.js';
 import {
   canAfford,
   executePurchase,
   getTotalTokenCount,
-} from './economyEngine';
-import { triggerAbility } from './abilityEngine';
-import { refillDisplay } from './gameInit';
-import { advancePhase } from './turnManager';
+} from './economyEngine.js';
+import { triggerAbility } from './abilityEngine.js';
+import { refillDisplay } from './gameInit.js';
+import { advancePhase } from './turnManager.js';
 
 // ============================================================
 // 拿取宝石

@@ -2,7 +2,7 @@
 // 失落的城市 (Lost Cities) - 游戏常量
 // ============================================================
 
-import { Color, ColorInfo } from './types';
+import { Color, ColorInfo } from './types.js';
 
 /** 游戏颜色列表 */
 export const COLORS: Color[] = ['red', 'green', 'blue', 'yellow', 'white'];

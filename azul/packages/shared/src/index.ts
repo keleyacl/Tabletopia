@@ -32,7 +32,7 @@ export {
   type RestartVoteRejectedEvent,
   type GameRestartedEvent,
   type GameEvent,
-} from './types';
+} from './types.js';
 
 export {
   TILES_PER_COLOR,
@@ -49,4 +49,4 @@ export {
   WALL_PATTERN,
   getWallColumnForColor,
   getWallColorAt,
-} from './constants';
+} from './constants.js';

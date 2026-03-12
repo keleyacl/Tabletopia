@@ -7,7 +7,7 @@ export {
   createPlayerBoard,
   initializeGame,
   prepareNewRound,
-} from './gameInit';
+} from './gameInit.js';
 
 // 玩家行动
 export {
@@ -17,7 +17,7 @@ export {
   takeTilesFromFactory,
   takeTilesFromCenter,
   isPickingPhaseOver,
-} from './gameActions';
+} from './gameActions.js';
 
 // 计分逻辑
 export {
@@ -28,4 +28,4 @@ export {
   checkGameEnd,
   calculateEndGameBonus,
   calculateFinalScores,
-} from './gameScoring';
+} from './gameScoring.js';

@@ -2,5 +2,5 @@
 // 失落的城市 (Lost Cities) - Shared 包统一导出
 // ============================================================
 
-export * from './types';
-export * from './constants';
+export * from './types.js';
+export * from './constants.js';

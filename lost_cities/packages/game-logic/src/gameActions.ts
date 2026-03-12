@@ -13,9 +13,9 @@ import {
   DiscardTops,
 } from '@lost-cities/shared';
 import { COLORS } from '@lost-cities/shared';
-import { scoreAll, calcMatchWins, roundWinner, isGameOver } from './gameScoring';
-import { getTopDiscard } from './utils';
-import { createRoundState } from './gameInit';
+import { scoreAll, calcMatchWins, roundWinner, isGameOver } from './gameScoring.js';
+import { getTopDiscard } from './utils.js';
+import { createRoundState } from './gameInit.js';
 
 /**
  * 判断能否将卡牌打入探险列

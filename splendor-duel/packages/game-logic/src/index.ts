@@ -14,7 +14,7 @@ export {
   checkSameColorCount,
   getGemCoords,
   cloneBoard,
-} from './boardLogic';
+} from './boardLogic.js';
 
 // 经济引擎
 export {
@@ -25,7 +25,7 @@ export {
   executePurchase,
   returnTokensToBag,
   getTotalTokenCount,
-} from './economyEngine';
+} from './economyEngine.js';
 
 // 能力引擎
 export {
@@ -34,7 +34,7 @@ export {
   getAvailableTakeTokenCoords,
   getAvailableRobTokenTypes,
   getAvailableCopyColors,
-} from './abilityEngine';
+} from './abilityEngine.js';
 
 // 游戏初始化
 export {
@@ -42,7 +42,7 @@ export {
   createEmptyPlayer,
   createInitialState,
   refillDisplay,
-} from './gameInit';
+} from './gameInit.js';
 
 // 回合管理
 export {
@@ -54,7 +54,7 @@ export {
   needsAbilityResolution,
   needsDiscard,
   getDiscardCount,
-} from './turnManager';
+} from './turnManager.js';
 
 // 玩家动作
 export {
@@ -64,10 +64,10 @@ export {
   usePrivilege,
   doRefillBoard,
   discardTokens,
-} from './gameActions';
+} from './gameActions.js';
 
 // 胜利判定
 export {
   checkVictory,
   getVictoryDetails,
-} from './victoryMonitor';
+} from './victoryMonitor.js';

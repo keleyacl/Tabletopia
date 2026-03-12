@@ -7,7 +7,7 @@
 // Level 3: 15 张（高费用，3-5分，1-3皇冠）
 // ============================================================
 
-import { Card, CardAbility, GemType } from './types';
+import { Card, CardAbility, GemType } from './types.js';
 
 // ============================================================
 // Level 1 卡牌（25张）

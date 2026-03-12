@@ -1,4 +1,4 @@
-import { TileColor, STANDARD_COLORS } from './types';
+import { TileColor, STANDARD_COLORS } from './types.js';
 
 // ============================================================
 // 花砖物语 (Azul) - 游戏常量

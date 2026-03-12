@@ -11,8 +11,8 @@
 
 import { GameState, TurnPhase } from '@splendor/shared';
 import { MAX_TOKENS } from '@splendor/shared';
-import { getTotalTokenCount } from './economyEngine';
-import { checkVictory } from './victoryMonitor';
+import { getTotalTokenCount } from './economyEngine.js';
+import { checkVictory } from './victoryMonitor.js';
 
 // ============================================================
 // 阶段推进

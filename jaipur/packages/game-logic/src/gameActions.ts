@@ -16,8 +16,8 @@ import {
   MARKET_SIZE,
   PREMIUM_GOODS,
 } from '@jaipur/shared';
-import { cloneState } from './utils';
-import { checkGameEnd, calculateFinalScores } from './gameEnd';
+import { cloneState } from './utils.js';
+import { checkGameEnd, calculateFinalScores } from './gameEnd.js';
 
 // ============================================================
 // 市场补牌

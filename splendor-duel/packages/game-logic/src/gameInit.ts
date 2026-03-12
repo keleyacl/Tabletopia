@@ -16,7 +16,7 @@ import {
   INITIAL_PRIVILEGES,
   ALL_GEM_TYPES,
 } from '@splendor/shared';
-import { createEmptyBoard, refillBoard } from './boardLogic';
+import { createEmptyBoard, refillBoard } from './boardLogic.js';
 
 // ============================================================
 // 工具函数

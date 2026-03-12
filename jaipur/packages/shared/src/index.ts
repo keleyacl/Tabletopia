@@ -23,10 +23,10 @@ export type {
   RoomVisibility,
   RoomListItem,
   JoinRequest,
-} from './types';
+} from './types.js';
 
 // 导出运行时常量（来自 types）
-export { PREMIUM_GOODS, TRADE_GOODS } from './types';
+export { PREMIUM_GOODS, TRADE_GOODS } from './types.js';
 
 // 导出所有常量
 export {
@@ -49,4 +49,4 @@ export {
   GOOD_NAMES,
   GOOD_ICONS,
   GOOD_COLORS,
-} from './constants';
+} from './constants.js';

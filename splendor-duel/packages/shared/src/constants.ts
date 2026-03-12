@@ -2,7 +2,7 @@
 // 璀璨宝石·对决 (Splendor Duel) - 游戏常量
 // ============================================================
 
-import { Coord, GemType } from './types';
+import { Coord, GemType } from './types.js';
 
 /** 棋盘尺寸 */
 export const BOARD_SIZE = 5;
