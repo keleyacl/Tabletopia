@@ -17,12 +17,32 @@ NGINX_AVAILABLE_DIR=""
 NGINX_ENABLED_DIR=""
 SYSTEMD_DIR="/etc/systemd/system"
 
-SERVICE_USER="${SUDO_USER:-$(id -un)}"
-SERVICE_GROUP="$(id -gn "${SERVICE_USER}")"
+BUILD_USER="${SUDO_USER:-$(id -un)}"
+BUILD_GROUP="$(id -gn "${BUILD_USER}")"
+SERVICE_USER="${BUILD_USER}"
+SERVICE_GROUP="${BUILD_GROUP}"
 NODE_BIN="$(command -v node || true)"
 NPM_BIN="$(command -v npm || true)"
 CURRENT_PATH="${PATH}"
 SITE_NAME=""
+
+resolve_home_dir() {
+  local user_name="$1"
+
+  if command -v getent >/dev/null 2>&1; then
+    local home_dir
+    home_dir="$(getent passwd "${user_name}" | cut -d: -f6)"
+    if [[ -n "${home_dir}" ]]; then
+      printf '%s\n' "${home_dir}"
+      return 0
+    fi
+  fi
+
+  eval "printf '%s\n' \"~${user_name}\""
+}
+
+BUILD_HOME="$(resolve_home_dir "${BUILD_USER}")"
+NPM_CACHE_DIR="${REPO_ROOT}/.deploy-cache/npm"
 
 TEMP_DIR="$(mktemp -d)"
 
@@ -159,6 +179,35 @@ run_root_cmd() {
   run_cmd "${SUDO_CMD[@]}" "$@"
 }
 
+run_build_cmd() {
+  if [[ "${DRY_RUN}" -eq 1 ]]; then
+    printf '+'
+    if [[ "${EUID}" -eq 0 && "${BUILD_USER}" != "root" ]]; then
+      printf ' sudo -u %q HOME=%q PATH=%q npm_config_cache=%q' \
+        "${BUILD_USER}" "${BUILD_HOME}" "${CURRENT_PATH}" "${NPM_CACHE_DIR}"
+    fi
+    for arg in "$@"; do
+      printf ' %q' "${arg}"
+    done
+    printf '\n'
+    return 0
+  fi
+
+  if [[ "${EUID}" -eq 0 && "${BUILD_USER}" != "root" ]]; then
+    sudo -u "${BUILD_USER}" \
+      HOME="${BUILD_HOME}" \
+      PATH="${CURRENT_PATH}" \
+      npm_config_cache="${NPM_CACHE_DIR}" \
+      "$@"
+    return 0
+  fi
+
+  HOME="${BUILD_HOME}" \
+    PATH="${CURRENT_PATH}" \
+    npm_config_cache="${NPM_CACHE_DIR}" \
+    "$@"
+}
+
 run_in_dir() {
   local dir="$1"
   shift
@@ -175,6 +224,29 @@ run_in_dir() {
   (
     cd "${dir}"
     "$@"
+  )
+}
+
+run_build_in_dir() {
+  local dir="$1"
+  shift
+
+  if [[ "${DRY_RUN}" -eq 1 ]]; then
+    printf '+ cd %q &&' "${dir}"
+    if [[ "${EUID}" -eq 0 && "${BUILD_USER}" != "root" ]]; then
+      printf ' sudo -u %q HOME=%q PATH=%q npm_config_cache=%q' \
+        "${BUILD_USER}" "${BUILD_HOME}" "${CURRENT_PATH}" "${NPM_CACHE_DIR}"
+    fi
+    for arg in "$@"; do
+      printf ' %q' "${arg}"
+    done
+    printf '\n'
+    return 0
+  fi
+
+  (
+    cd "${dir}"
+    run_build_cmd "$@"
   )
 }
 
@@ -543,7 +615,7 @@ install_systemd_services() {
 maybe_install_dependencies() {
   local project_dir="$1"
   if [[ "${RUN_INSTALL}" -eq 1 ]]; then
-    run_in_dir "${project_dir}" "${NPM_BIN}" install
+    run_build_in_dir "${project_dir}" "${NPM_BIN}" install
   fi
 }
 
@@ -559,7 +631,7 @@ build_projects() {
   for project in "${projects[@]}"; do
     log "安装依赖并构建 ${project}"
     maybe_install_dependencies "${REPO_ROOT}/${project}"
-    run_in_dir "${REPO_ROOT}/${project}" "${NPM_BIN}" run build
+    run_build_in_dir "${REPO_ROOT}/${project}" "${NPM_BIN}" run build
   done
 }
 
@@ -649,11 +721,15 @@ print_summary() {
 main() {
   detect_nginx_layout
   ensure_base_dependencies
+  run_build_cmd mkdir -p "${NPM_CACHE_DIR}"
 
   log "部署配置"
   printf '  DOMAIN=%s\n' "${DOMAIN}"
   printf '  REPO_ROOT=%s\n' "${REPO_ROOT}"
   printf '  WWW_ROOT=%s\n' "${WWW_ROOT}"
+  printf '  BUILD_USER=%s\n' "${BUILD_USER}"
+  printf '  BUILD_HOME=%s\n' "${BUILD_HOME}"
+  printf '  NPM_CACHE_DIR=%s\n' "${NPM_CACHE_DIR}"
   printf '  SERVICE_USER=%s\n' "${SERVICE_USER}"
   printf '  SERVICE_GROUP=%s\n' "${SERVICE_GROUP}"
   printf '  NPM_BIN=%s\n' "${NPM_BIN}"
