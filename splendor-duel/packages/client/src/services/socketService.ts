@@ -7,7 +7,7 @@ import { GameState, GameAction, RoomListItem, RoomInfo } from '@splendor/shared'
 
 function getSocketPath(): string {
   const baseUrl = import.meta.env.BASE_URL || '/';
-  return `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}socket.io`;
+  return `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}socket.io/`;
 }
 
 class SocketService {

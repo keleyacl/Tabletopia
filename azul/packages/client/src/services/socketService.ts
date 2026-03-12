@@ -17,7 +17,7 @@ type EventCallback = (...args: any[]) => void;
 
 function getSocketPath(): string {
   const baseUrl = import.meta.env.BASE_URL || '/';
-  return `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}socket.io`;
+  return `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}socket.io/`;
 }
 
 class SocketService {

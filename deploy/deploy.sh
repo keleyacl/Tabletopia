@@ -9,7 +9,7 @@ DOMAIN="game.yuxinlai.com"
 WWW_ROOT="/var/www/tabletopia"
 CERTBOT_EMAIL=""
 RUN_INSTALL=1
-RUN_CERTBOT=1
+RUN_CERTBOT=0
 HTTP_ONLY=0
 DRY_RUN=0
 
@@ -114,6 +114,7 @@ usage() {
   --nginx-available-dir DIR   nginx sites-available 目录
   --nginx-enabled-dir DIR     nginx sites-enabled 目录
   --certbot-email EMAIL       certbot 邮箱，默认留空
+  --enable-https              自动申请证书并生成 https 配置
   --no-install                跳过 npm install
   --no-certbot                不自动申请证书
   --http-only                 只部署 http，不配置 https
@@ -122,7 +123,7 @@ usage() {
 
 示例:
   ./deploy/deploy.sh --domain game.yuxinlai.com
-  ./deploy/deploy.sh --domain game.yuxinlai.com --certbot-email admin@example.com
+  ./deploy/deploy.sh --domain game.yuxinlai.com --enable-https --certbot-email admin@example.com
   ./deploy/deploy.sh --domain game.yuxinlai.com --no-certbot --http-only
 EOF
 }
@@ -152,6 +153,10 @@ while [[ $# -gt 0 ]]; do
     --certbot-email)
       CERTBOT_EMAIL="${2:-}"
       shift 2
+      ;;
+    --enable-https)
+      RUN_CERTBOT=1
+      shift
       ;;
     --no-install)
       RUN_INSTALL=0
@@ -363,54 +368,6 @@ server {
         try_files \$uri =404;
     }
 
-    location /azul/socket.io/ {
-        proxy_pass http://127.0.0.1:3001/socket.io/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_read_timeout 600s;
-    }
-
-    location /splendor-duel/socket.io/ {
-        proxy_pass http://127.0.0.1:3003/socket.io/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_read_timeout 600s;
-    }
-
-    location /lost-cities/ws/ {
-        proxy_pass http://127.0.0.1:3005/ws/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_read_timeout 600s;
-    }
-
-    location /jaipur/socket.io/ {
-        proxy_pass http://127.0.0.1:3007/socket.io/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_read_timeout 600s;
-    }
-
     location /azul/assets/ {
         try_files \$uri =404;
         expires 1y;
@@ -433,6 +390,58 @@ server {
         try_files \$uri =404;
         expires 1y;
         add_header Cache-Control "public, immutable";
+    }
+
+    location /azul/socket.io {
+        proxy_pass http://127.0.0.1:3001/socket.io;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection \$http_connection;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_buffering off;
+        proxy_read_timeout 600s;
+    }
+
+    location /splendor-duel/socket.io {
+        proxy_pass http://127.0.0.1:3003/socket.io;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection \$http_connection;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_buffering off;
+        proxy_read_timeout 600s;
+    }
+
+    location /lost-cities/ws {
+        proxy_pass http://127.0.0.1:3005/ws;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection \$http_connection;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_buffering off;
+        proxy_read_timeout 600s;
+    }
+
+    location /jaipur/socket.io {
+        proxy_pass http://127.0.0.1:3007/socket.io;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection \$http_connection;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_buffering off;
+        proxy_read_timeout 600s;
     }
 
     location /azul/ {
@@ -471,14 +480,111 @@ server {
     listen 80;
     listen [::]:80;
     server_name ${DOMAIN};
+    root ${WWW_ROOT};
 
     location ^~ /.well-known/acme-challenge/ {
-        root ${WWW_ROOT};
         try_files \$uri =404;
     }
 
+    location /azul/assets/ {
+        try_files \$uri =404;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    location /splendor-duel/assets/ {
+        try_files \$uri =404;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    location /lost-cities/assets/ {
+        try_files \$uri =404;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    location /jaipur/assets/ {
+        try_files \$uri =404;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    location /azul/socket.io {
+        proxy_pass http://127.0.0.1:3001/socket.io;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection \$http_connection;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_buffering off;
+        proxy_read_timeout 600s;
+    }
+
+    location /splendor-duel/socket.io {
+        proxy_pass http://127.0.0.1:3003/socket.io;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection \$http_connection;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_buffering off;
+        proxy_read_timeout 600s;
+    }
+
+    location /lost-cities/ws {
+        proxy_pass http://127.0.0.1:3005/ws;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection \$http_connection;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_buffering off;
+        proxy_read_timeout 600s;
+    }
+
+    location /jaipur/socket.io {
+        proxy_pass http://127.0.0.1:3007/socket.io;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection \$http_connection;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_buffering off;
+        proxy_read_timeout 600s;
+    }
+
+    location /azul/ {
+        add_header Cache-Control "no-cache";
+        try_files \$uri \$uri/ /azul/index.html;
+    }
+
+    location /splendor-duel/ {
+        add_header Cache-Control "no-cache";
+        try_files \$uri \$uri/ /splendor-duel/index.html;
+    }
+
+    location /lost-cities/ {
+        add_header Cache-Control "no-cache";
+        try_files \$uri \$uri/ /lost-cities/index.html;
+    }
+
+    location /jaipur/ {
+        add_header Cache-Control "no-cache";
+        try_files \$uri \$uri/ /jaipur/index.html;
+    }
+
     location / {
-        return 301 https://\$host\$request_uri;
+        add_header Cache-Control "no-cache";
+        try_files \$uri \$uri/ /index.html;
     }
 }
 
@@ -515,51 +621,55 @@ server {
         add_header Cache-Control "public, immutable";
     }
 
-    location /azul/socket.io/ {
-        proxy_pass http://127.0.0.1:3001/socket.io/;
+    location /azul/socket.io {
+        proxy_pass http://127.0.0.1:3001/socket.io;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection \$http_connection;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_buffering off;
         proxy_read_timeout 600s;
     }
 
-    location /splendor-duel/socket.io/ {
-        proxy_pass http://127.0.0.1:3003/socket.io/;
+    location /splendor-duel/socket.io {
+        proxy_pass http://127.0.0.1:3003/socket.io;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection \$http_connection;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_buffering off;
         proxy_read_timeout 600s;
     }
 
-    location /lost-cities/ws/ {
-        proxy_pass http://127.0.0.1:3005/ws/;
+    location /lost-cities/ws {
+        proxy_pass http://127.0.0.1:3005/ws;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection \$http_connection;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_buffering off;
         proxy_read_timeout 600s;
     }
 
-    location /jaipur/socket.io/ {
-        proxy_pass http://127.0.0.1:3007/socket.io/;
+    location /jaipur/socket.io {
+        proxy_pass http://127.0.0.1:3007/socket.io;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection \$http_connection;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_buffering off;
         proxy_read_timeout 600s;
     }
 
@@ -700,7 +810,7 @@ configure_nginx() {
   install_nginx_site "${TEMP_DIR}/site.conf"
 
   if [[ "${RUN_CERTBOT}" -eq 0 ]]; then
-    log "已跳过 certbot，当前仅启用 http"
+    log "当前不强制 https，已按 http 配置完成"
     return 0
   fi
 
