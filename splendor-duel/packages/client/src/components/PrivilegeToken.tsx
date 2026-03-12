@@ -10,40 +10,35 @@ interface PrivilegeTokenProps {
   disabled?: boolean;
 }
 
-const PrivilegeToken: React.FC<PrivilegeTokenProps> = ({
-  count,
-  onClick,
-  disabled = false,
-}) => {
+const PrivilegeToken: React.FC<PrivilegeTokenProps> = ({ count, onClick, disabled = false }) => {
   return (
-    <div className="flex flex-col items-center gap-1">
-      <div className="text-xs text-gray-400 uppercase tracking-wider">
-        公共特权池
-      </div>
-      <div className="flex gap-1">
-        {Array.from({ length: count }).map((_, i) => (
-          <button
-            key={i}
-            onClick={onClick}
-            disabled={disabled}
-            className={`
-              w-8 h-10 rounded-md
-              bg-gradient-to-b from-amber-300 to-amber-600
-              border border-amber-200/50
-              shadow-lg shadow-amber-500/30
-              flex items-center justify-center
-              transition-all duration-200
-              ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110 cursor-pointer'}
-            `}
-          >
-            <span className="text-sm text-amber-900 font-bold">📜</span>
-          </button>
-        ))}
-        {count === 0 && (
-          <span className="text-sm text-gray-600">空</span>
+    <aside className="rounded-[24px] border border-white/10 bg-black/20 p-4">
+      <div className="text-xs font-medium text-white/50">公共特权池</div>
+      <div className="mt-2 text-2xl font-semibold text-white">{count}</div>
+      <p className="mt-2 text-sm leading-7 text-[#9e94b6]">需要时可以从这里取用卷轴。</p>
+
+      <div className="mt-4 flex flex-col gap-2">
+        {count > 0 ? (
+          Array.from({ length: count }).map((_, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={onClick}
+              disabled={disabled}
+              className={`flex h-12 items-center justify-center rounded-2xl border border-amber-300/28 bg-gradient-to-br from-amber-200 to-amber-500 text-lg shadow-lg shadow-amber-500/15 transition ${
+                disabled ? 'cursor-not-allowed opacity-45' : 'hover:scale-[1.02]'
+              }`}
+            >
+              📜
+            </button>
+          ))
+        ) : (
+          <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] px-3 py-6 text-center text-sm leading-6 text-[#9e94b6]">
+            特权池已空。
+          </div>
         )}
       </div>
-    </div>
+    </aside>
   );
 };
 

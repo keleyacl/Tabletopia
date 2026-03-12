@@ -11,13 +11,15 @@ import JoinRequestModal from '../components/JoinRequestModal';
 import type { RoomVisibility } from '@splendor/shared';
 
 const panelClass =
-  'relative overflow-hidden rounded-[28px] border border-white/10 bg-[#120d22]/80 shadow-2xl shadow-black/50 backdrop-blur-xl';
+  'relative overflow-hidden rounded-[28px] border border-white/12 bg-[#120d22]/92 shadow-[0_18px_60px_rgba(0,0,0,0.38)] backdrop-blur-xl';
+const surfaceClass = 'rounded-[24px] border border-white/10 bg-black/20 p-4 sm:p-5';
+const sectionLabelClass = 'text-xs font-medium text-white/52';
 const inputClass =
-  'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white outline-none transition placeholder:text-[#8f85aa] focus:border-fuchsia-300/60 focus:bg-white/8 focus:ring-2 focus:ring-fuchsia-300/20';
+  'w-full rounded-2xl border border-white/12 bg-white/[0.06] px-4 py-3 text-base text-white outline-none transition placeholder:text-[#8f85aa] focus:border-cyan-300/55 focus:bg-white/[0.1] focus:ring-2 focus:ring-cyan-300/15';
 const primaryButtonClass =
-  'inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-fuchsia-950/40 transition hover:scale-[1.01] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:scale-100';
+  'inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-amber-300 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-black/35 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:brightness-100';
 const secondaryButtonClass =
-  'inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/6 px-5 py-3 text-sm font-semibold text-white/90 transition hover:border-white/20 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45';
+  'inline-flex items-center justify-center rounded-2xl border border-white/12 bg-white/[0.06] px-5 py-3 text-sm font-semibold text-white/90 transition hover:border-white/20 hover:bg-white/[0.1] disabled:cursor-not-allowed disabled:opacity-45';
 
 const roomVisibilityOptions: Array<{
   value: RoomVisibility;
@@ -295,88 +297,75 @@ const Lobby: React.FC = () => {
     startAutoRefresh();
   };
 
+  const playerDisplayName = playerName || inputName || '未命名玩家';
+  const roomPlayerCount = roomInfo ? roomInfo.players.length : 1;
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#070512] text-white">
-      <div className="absolute inset-0 bg-gradient-to-br from-[#080612] via-[#160e2b] to-[#04060b]" />
-      <div className="absolute left-[-10%] top-[-12%] h-80 w-80 rounded-full bg-fuchsia-500/20 blur-3xl" />
-      <div className="absolute bottom-[-18%] right-[-8%] h-96 w-96 rounded-full bg-cyan-400/18 blur-3xl" />
-      <div className="absolute right-[22%] top-[18%] h-48 w-48 rounded-full bg-amber-300/10 blur-3xl" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#080612] via-[#160e2b] to-[#04060b]" />
+      <div className="pointer-events-none absolute left-[-12%] top-[-16%] h-96 w-96 rounded-full bg-fuchsia-500/18 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-[-22%] right-[-10%] h-[28rem] w-[28rem] rounded-full bg-cyan-400/14 blur-3xl" />
+      <div className="pointer-events-none absolute right-[18%] top-[14%] h-56 w-56 rounded-full bg-amber-300/8 blur-3xl" />
 
-      <div className="relative mx-auto flex min-h-screen max-w-6xl items-center justify-center px-4 py-8">
-        <div className="grid w-full max-w-5xl gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
-          <section className={`${panelClass} p-8 sm:p-10`}>
-            <div className="absolute inset-0 bg-gradient-to-br from-white/8 via-transparent to-cyan-300/6" />
-            <div className="relative flex h-full flex-col justify-between gap-8">
-              <div className="space-y-6">
-                <div
-                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold tracking-[0.28em] ${connectionMeta.tone}`}
-                >
-                  <span className={`h-2 w-2 rounded-full ${connectionMeta.dot}`} />
-                  {connectionMeta.badge}
-                </div>
+      <div className="relative mx-auto flex min-h-screen max-w-6xl items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
+        {connectionStatus !== 'connected' ? (
+          <main className="w-full max-w-5xl">
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+              <section className={`${panelClass} p-8 sm:p-10`}>
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.12),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(34,211,238,0.16),transparent_28%)]" />
 
-                <div className="space-y-4">
-                  <p className="text-sm uppercase tracking-[0.38em] text-fuchsia-100/60">Splendor Duel Lobby</p>
-                  <div className="space-y-3">
-                    <h1 className="text-4xl font-black tracking-tight sm:text-5xl">
-                      <span className="mr-3 inline-block animate-float">💎</span>
-                      <span className="bg-gradient-to-r from-cyan-200 via-fuchsia-100 to-amber-200 bg-clip-text text-transparent">
-                        璀璨宝石·对决
-                      </span>
+                <div className="relative space-y-8">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div
+                      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold tracking-[0.12em] ${connectionMeta.tone}`}
+                    >
+                      <span className={`h-2 w-2 rounded-full ${connectionMeta.dot}`} />
+                      {connectionMeta.badge}
+                    </div>
+                    <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-fuchsia-100/55">
+                      Splendor Duel
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="text-5xl leading-none sm:text-6xl">💎</div>
+                    <h1 className="max-w-3xl bg-gradient-to-r from-cyan-200 via-fuchsia-100 to-amber-200 bg-clip-text text-4xl font-semibold leading-[1.08] text-transparent sm:text-5xl">
+                      璀璨宝石·对决大厅
                     </h1>
-                    <p className="max-w-xl text-base leading-7 text-[#c9bddf] sm:text-lg">
-                      连接大厅，创建房间，等待对手入席。这里应该像宝石桌面，而不是一张默认白卡片。
+                    <p className="max-w-2xl text-base leading-8 text-[#cdbfe2]">
+                      建立连接后，就可以创建公开房间，或者输入房间码直接加入朋友的对局。
                     </p>
                   </div>
-                </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
-                    <div className="text-xs uppercase tracking-[0.28em] text-white/45">当前阶段</div>
-                    <div className="mt-2 text-xl font-semibold text-white">{lobbyStage}</div>
-                    <div className="mt-1 text-sm text-[#9f95b8]">{connectionMeta.description}</div>
-                  </div>
-                  <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
-                    <div className="text-xs uppercase tracking-[0.28em] text-white/45">玩家身份</div>
-                    <div className="mt-2 text-xl font-semibold text-white">{playerName || inputName || '未命名玩家'}</div>
-                    <div className="mt-1 text-sm text-[#9f95b8]">
-                      {playerId !== null ? `当前座位 P${playerId + 1}` : '连接后将自动分配座位编号'}
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className={surfaceClass}>
+                      <div className={sectionLabelClass}>当前状态</div>
+                      <div className="mt-3 text-2xl font-semibold text-white">{lobbyStage}</div>
+                      <p className="mt-2 text-sm leading-7 text-[#a99dc0]">{connectionMeta.description}</p>
+                    </div>
+
+                    <div className={surfaceClass}>
+                      <div className={sectionLabelClass}>玩家信息</div>
+                      <div className="mt-3 text-2xl font-semibold text-white">{playerDisplayName}</div>
+                      <p className="mt-2 text-sm leading-7 text-[#a99dc0]">连接成功后自动分配座位编号</p>
                     </div>
                   </div>
                 </div>
-              </div>
+              </section>
 
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-3xl border border-fuchsia-400/20 bg-fuchsia-400/8 p-4">
-                  <div className="text-sm font-semibold text-fuchsia-100">双人对决</div>
-                  <div className="mt-1 text-sm text-[#b8add1]">围绕棋盘中线争夺宝石与卡牌节奏。</div>
-                </div>
-                <div className="rounded-3xl border border-cyan-300/20 bg-cyan-300/8 p-4">
-                  <div className="text-sm font-semibold text-cyan-50">公开匹配</div>
-                  <div className="mt-1 text-sm text-[#b8add1]">大厅列表实时刷新，适合直接找人开局。</div>
-                </div>
-                <div className="rounded-3xl border border-amber-300/20 bg-amber-300/8 p-4">
-                  <div className="text-sm font-semibold text-amber-100">房间码入场</div>
-                  <div className="mt-1 text-sm text-[#b8add1]">私密对局走邀请码，不暴露房间列表。</div>
-                </div>
-              </div>
-            </div>
-          </section>
+              <section className={`${panelClass} p-6`}>
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/6 via-transparent to-transparent" />
 
-          <section className={`${panelClass} p-6 sm:p-8`}>
-            <div className="absolute inset-0 bg-gradient-to-b from-white/6 via-transparent to-transparent" />
-            <div className="relative space-y-6">
-              {connectionStatus !== 'connected' ? (
-                <>
+                <div className="relative space-y-5">
                   <div className="space-y-2">
-                    <div className="text-sm uppercase tracking-[0.3em] text-white/45">进入大厅</div>
-                    <h2 className="text-3xl font-bold text-white">建立你的第一条连线</h2>
-                    <p className="text-sm leading-6 text-[#a79cbe]">
-                      先设置昵称。连接完成后，房间列表会自动刷新，你可以直接建房或输入房间码加入。
+                    <div className={sectionLabelClass}>进入大厅</div>
+                    <h2 className="text-2xl font-semibold text-white">建立连接</h2>
+                    <p className="text-sm leading-7 text-[#ab9fc1]">
+                      输入昵称后连接服务器。连接成功后就可以建房或加入现有房间。
                     </p>
                   </div>
 
-                  <div className="rounded-3xl border border-white/10 bg-black/20 p-5">
+                  <div>
                     <label className="mb-3 block text-sm font-medium text-white/80">你的昵称</label>
                     <input
                       type="text"
@@ -387,7 +376,11 @@ const Lobby: React.FC = () => {
                       maxLength={20}
                       onKeyDown={(e) => e.key === 'Enter' && handleConnect()}
                     />
-                    <div className="mt-3 text-xs leading-5 text-[#9187ab]">昵称只用于本局展示，20 个字符以内。</div>
+                    <p className="mt-3 text-xs leading-5 text-[#9085a8]">仅用于当前对局展示，最多 20 个字符。</p>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm leading-7 text-[#c6bbde]">
+                    连接后大厅列表会自动刷新。你可以创建公开房间，也可以通过房间码直接加入。
                   </div>
 
                   <button
@@ -397,217 +390,274 @@ const Lobby: React.FC = () => {
                   >
                     {connectionStatus === 'connecting' ? '正在连接服务器...' : '连接服务器'}
                   </button>
-                </>
-              ) : roomId ? (
-                <>
-                  <div className="space-y-2">
-                    <div className="text-sm uppercase tracking-[0.3em] text-white/45">房间已就绪</div>
-                    <h2 className="text-3xl font-bold text-white">{isHost ? '等待对手入席' : '已进入房间'}</h2>
-                    <p className="text-sm leading-6 text-[#a79cbe]">
-                      {isHost
-                        ? '把房间码发给朋友，或等待大厅申请。两名玩家到齐后会自动进入棋盘。'
-                        : '房主确认后，对局会在双方状态同步后自动开始。'}
+                </div>
+              </section>
+            </div>
+
+            {error && (
+              <div className="mt-4 rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm leading-7 text-rose-100">
+                {error}
+              </div>
+            )}
+          </main>
+        ) : roomId ? (
+          <main className="w-full max-w-4xl">
+            <section className={`${panelClass} p-8 sm:p-10`}>
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.12),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(34,211,238,0.16),transparent_28%)]" />
+
+              <div className="relative space-y-8">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div
+                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold tracking-[0.12em] ${connectionMeta.tone}`}
+                  >
+                    <span className={`h-2 w-2 rounded-full ${connectionMeta.dot}`} />
+                    {connectionMeta.badge}
+                  </div>
+                  <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-fuchsia-100/55">
+                    房间等待区
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h1 className="text-3xl font-semibold text-white sm:text-4xl">
+                    {isHost ? '等待对手入席' : '已进入房间'}
+                  </h1>
+                  <p className="max-w-2xl text-sm leading-8 text-[#cdbfe2] sm:text-base">
+                    {isHost
+                      ? '把房间码发给对手，或等待大厅中的加入申请。两名玩家到齐后会自动进入棋盘。'
+                      : '房主确认后，对局会在双方状态同步完成后自动开始。'}
+                  </p>
+                </div>
+
+                <div className="rounded-[28px] border border-fuchsia-400/20 bg-gradient-to-br from-fuchsia-500/14 via-violet-500/10 to-cyan-400/12 p-6 sm:p-8">
+                  <div className={sectionLabelClass}>房间码</div>
+                  <div className="mt-4 text-5xl font-black tracking-[0.18em] text-white">{roomId}</div>
+
+                  <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                      <div className={sectionLabelClass}>身份</div>
+                      <div className="mt-2 text-lg font-semibold text-white">{isHost ? '房主' : '访客'}</div>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                      <div className={sectionLabelClass}>当前人数</div>
+                      <div className="mt-2 text-lg font-semibold text-white">{roomPlayerCount}/2</div>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                      <div className={sectionLabelClass}>房间类型</div>
+                      <div className="mt-2 text-lg font-semibold text-white">{roomInfo?.visibility === 'private' ? '私密房间' : '公开房间'}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {error && (
+              <div className="mt-4 rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm leading-7 text-rose-100">
+                {error}
+              </div>
+            )}
+          </main>
+        ) : (
+          <main className="w-full max-w-6xl">
+            <section className={`${panelClass} p-6 sm:p-8 lg:p-10`}>
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.12),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(34,211,238,0.16),transparent_28%)]" />
+
+              <div className="relative space-y-6">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div
+                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold tracking-[0.12em] ${connectionMeta.tone}`}
+                      >
+                        <span className={`h-2 w-2 rounded-full ${connectionMeta.dot}`} />
+                        {connectionMeta.badge}
+                      </div>
+                      <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-fuchsia-100/55">
+                        Splendor Duel
+                      </div>
+                    </div>
+                    <h1 className="text-3xl font-semibold text-white sm:text-4xl">璀璨宝石·对决大厅</h1>
+                    <p className="max-w-2xl text-sm leading-8 text-[#cdbfe2] sm:text-base">
+                      现在可以创建房间、查看大厅列表，或输入房间码直接进入指定对局。
                     </p>
                   </div>
 
-                  <div className="rounded-[26px] border border-fuchsia-400/20 bg-gradient-to-br from-fuchsia-500/12 via-violet-500/10 to-cyan-400/10 p-6">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="text-xs uppercase tracking-[0.28em] text-fuchsia-100/60">房间码</div>
-                        <div className="mt-2 text-4xl font-black tracking-[0.18em] text-white">{roomId}</div>
-                      </div>
-                      <div className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-xs font-medium text-white/80">
-                        {isHost ? '房主' : '访客'}
-                      </div>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:w-[420px]">
+                    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                      <div className={sectionLabelClass}>玩家信息</div>
+                      <div className="mt-2 text-lg font-semibold text-white">{playerDisplayName}</div>
+                      <p className="mt-2 text-sm leading-6 text-[#9388aa]">
+                        {playerId !== null ? `当前座位 P${playerId + 1}` : '等待分配座位'}
+                      </p>
                     </div>
-                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                      <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                        <div className="text-xs uppercase tracking-[0.24em] text-white/45">当前人数</div>
-                        <div className="mt-2 text-xl font-semibold text-white">
-                          {roomInfo ? `${roomInfo.players.length}/2` : '1/2'}
-                        </div>
-                      </div>
-                      <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                        <div className="text-xs uppercase tracking-[0.24em] text-white/45">状态</div>
-                        <div className="mt-2 text-xl font-semibold text-white">等待开局</div>
-                      </div>
+                    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                      <div className={sectionLabelClass}>大厅状态</div>
+                      <div className="mt-2 text-lg font-semibold text-white">{lobbyStage}</div>
+                      <p className="mt-2 text-sm leading-6 text-[#9388aa]">当前可创建新房间或加入现有房间。</p>
                     </div>
                   </div>
+                </div>
 
-                  <div className="rounded-3xl border border-white/10 bg-black/20 p-5 text-sm leading-6 text-[#b7accf]">
-                    分享这段房间码给对手即可进入。大厅申请通过后，页面会自动切到游戏棋盘。
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between gap-4 rounded-3xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3">
-                    <div>
-                      <div className="text-sm font-semibold text-emerald-100">已连接到服务器</div>
-                      <div className="text-xs text-emerald-50/70">房间列表会自动刷新，当前昵称为 {playerName}</div>
-                    </div>
-                    <div className="rounded-full border border-emerald-300/20 bg-black/15 px-3 py-1 text-xs text-emerald-100">
-                      实时大厅
-                    </div>
-                  </div>
-
-                  {pendingJoinRequest ? (
-                    <div className="space-y-4 rounded-[26px] border border-amber-300/20 bg-amber-300/10 p-6">
-                      <div className="space-y-2">
-                        <div className="text-sm uppercase tracking-[0.28em] text-amber-100/70">等待审批</div>
-                        <div className="text-2xl font-bold text-amber-50">已发送加入申请</div>
-                        <div className="text-sm text-amber-50/75">房主确认前，你会停留在这里等待结果。</div>
-                      </div>
-                      <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4">
-                        <div className="text-xs uppercase tracking-[0.24em] text-white/45">目标房间</div>
-                        <div className="mt-2 text-3xl font-black tracking-[0.14em] text-white">
-                          {pendingJoinRequest.roomId}
+                <div className="grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
+                  <div className="space-y-4">
+                    {pendingJoinRequest ? (
+                      <section className="space-y-4 rounded-[28px] border border-amber-300/20 bg-amber-300/10 p-6">
+                        <div className="space-y-2">
+                          <div className={sectionLabelClass}>等待审批</div>
+                          <div className="text-2xl font-semibold text-amber-50">已发送加入申请</div>
+                          <p className="text-sm leading-7 text-amber-50/75">房主确认前，你会停留在这里等待结果。</p>
                         </div>
-                      </div>
-                      <button onClick={handleCancelJoinRequest} className={`w-full ${secondaryButtonClass}`}>
-                        取消申请
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="space-y-4 rounded-[26px] border border-white/10 bg-black/20 p-5">
-                        <div className="space-y-1">
-                          <div className="text-sm uppercase tracking-[0.28em] text-white/45">创建房间</div>
-                          <h2 className="text-2xl font-bold text-white">选择你的开局方式</h2>
+                        <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4">
+                          <div className={sectionLabelClass}>目标房间</div>
+                          <div className="mt-2 text-3xl font-black tracking-[0.14em] text-white">{pendingJoinRequest.roomId}</div>
                         </div>
-
-                        <div className="grid gap-3">
-                          {roomVisibilityOptions.map((option) => (
-                            <button
-                              key={option.value}
-                              onClick={() => setRoomVisibility(option.value)}
-                              className={`rounded-3xl border p-4 text-left transition ${
-                                roomVisibility === option.value
-                                  ? 'border-fuchsia-300/40 bg-gradient-to-r from-fuchsia-500/18 to-cyan-400/12'
-                                  : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/8'
-                              }`}
-                            >
-                              <div className="flex items-start gap-3">
-                                <div className="text-2xl">{option.icon}</div>
-                                <div className="min-w-0">
-                                  <div className="text-base font-semibold text-white">{option.title}</div>
-                                  <div className="mt-1 text-sm leading-6 text-[#a79cbe]">{option.description}</div>
-                                </div>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-
-                        <button onClick={handleCreateRoom} className={`w-full ${primaryButtonClass}`}>
-                          创建新房间
+                        <button onClick={handleCancelJoinRequest} className={`w-full ${secondaryButtonClass}`}>
+                          取消申请
                         </button>
-                      </div>
-
-                      <div className="space-y-4 rounded-[26px] border border-white/10 bg-black/20 p-5">
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <div className="text-sm uppercase tracking-[0.28em] text-white/45">公开房间</div>
-                            <h3 className="mt-1 text-xl font-bold text-white">大厅列表</h3>
+                      </section>
+                    ) : (
+                      <>
+                        <section className={`${surfaceClass} space-y-4`}>
+                          <div className="space-y-2">
+                            <div className={sectionLabelClass}>创建房间</div>
+                            <h2 className="text-2xl font-semibold text-white">选择开局方式</h2>
+                            <p className="text-sm leading-7 text-[#ab9fc1]">
+                              公开房间会显示在大厅列表，私密房间只接受房间码加入。
+                            </p>
                           </div>
-                          <button
-                            onClick={handleManualRefresh}
-                            disabled={roomListLoading}
-                            className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/75 transition hover:border-white/20 hover:bg-white/10 disabled:opacity-45"
-                          >
-                            {roomListLoading ? '刷新中...' : `刷新 ${refreshCountdown}s`}
-                          </button>
-                        </div>
 
-                        {roomList.length === 0 ? (
-                          <div className="rounded-3xl border border-dashed border-white/12 bg-white/[0.03] px-5 py-8 text-center">
-                            <div className="text-3xl">🏜️</div>
-                            <div className="mt-3 text-base font-medium text-white/90">大厅里暂时没有公开房间</div>
-                            <div className="mt-2 text-sm text-[#9c92b5]">你可以先创建一个，或等下一轮自动刷新。</div>
-                          </div>
-                        ) : (
-                          <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
-                            {roomList.map((room) => {
-                              const roomStatusMeta = getRoomStatusMeta(room.status);
-
-                              return (
-                                <div
-                                  key={room.roomId}
-                                  className="rounded-3xl border border-white/10 bg-white/5 p-4 transition hover:border-fuchsia-300/30 hover:bg-white/8"
-                                >
-                                  <div className="flex items-start justify-between gap-3">
-                                    <div className="min-w-0 flex-1">
-                                      <div className="flex flex-wrap items-center gap-2">
-                                        <div className="truncate text-base font-semibold text-white">{room.hostName}</div>
-                                        <span
-                                          className={`rounded-full border px-2.5 py-1 text-xs font-medium ${roomStatusMeta.className}`}
-                                        >
-                                          {roomStatusMeta.label}
-                                        </span>
-                                      </div>
-                                      <div className="mt-2 text-sm text-[#a79cbe]">
-                                        {room.playerCount}/{room.maxPlayers} 人 · 房间码 {room.roomId}
-                                      </div>
-                                    </div>
-                                    <button
-                                      onClick={() => handleSendJoinRequest(room.roomId)}
-                                      disabled={room.status !== 'waiting' || room.playerCount >= room.maxPlayers}
-                                      className={
-                                        room.status === 'waiting' && room.playerCount < room.maxPlayers
-                                          ? primaryButtonClass
-                                          : secondaryButtonClass
-                                      }
-                                    >
-                                      {room.status === 'waiting' && room.playerCount < room.maxPlayers
-                                        ? '申请加入'
-                                        : '不可加入'}
-                                    </button>
+                          <div className="grid gap-3">
+                            {roomVisibilityOptions.map((option) => (
+                              <button
+                                key={option.value}
+                                onClick={() => setRoomVisibility(option.value)}
+                                className={`rounded-[22px] border p-4 text-left transition ${
+                                  roomVisibility === option.value
+                                    ? 'border-cyan-300/35 bg-gradient-to-r from-cyan-400/16 via-fuchsia-500/12 to-amber-300/16'
+                                    : 'border-white/10 bg-white/[0.04] hover:border-white/20 hover:bg-white/[0.08]'
+                                }`}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="text-2xl">{option.icon}</div>
+                                  <div className="min-w-0">
+                                    <div className="text-base font-semibold text-white">{option.title}</div>
+                                    <p className="mt-1 text-sm leading-7 text-[#ab9fc1]">{option.description}</p>
                                   </div>
                                 </div>
-                              );
-                            })}
+                              </button>
+                            ))}
                           </div>
-                        )}
-                      </div>
 
-                      <div className="space-y-4 rounded-[26px] border border-white/10 bg-black/20 p-5">
-                        <div>
-                          <div className="text-sm uppercase tracking-[0.28em] text-white/45">房间码加入</div>
-                          <h3 className="mt-1 text-xl font-bold text-white">直接进入指定房间</h3>
-                        </div>
+                          <button onClick={handleCreateRoom} className={`w-full ${primaryButtonClass}`}>
+                            创建新房间
+                          </button>
+                        </section>
 
-                        <div className="flex flex-col gap-3 sm:flex-row">
+                        <section className={`${surfaceClass} space-y-4`}>
+                          <div className="space-y-2">
+                            <div className={sectionLabelClass}>房间码加入</div>
+                            <h3 className="text-xl font-semibold text-white">直接进入指定房间</h3>
+                          </div>
+
                           <input
                             type="text"
                             value={inputRoomCode}
                             onChange={(e) => setInputRoomCode(e.target.value.toUpperCase())}
                             placeholder="输入房间码"
-                            className={`${inputClass} uppercase sm:flex-1`}
+                            className={`${inputClass} uppercase`}
                             maxLength={8}
                             onKeyDown={(e) => e.key === 'Enter' && handleJoinRoom()}
                           />
+
                           <button
                             onClick={handleJoinRoom}
                             disabled={!inputRoomCode.trim()}
-                            className={`sm:w-auto ${primaryButtonClass}`}
+                            className={`w-full ${primaryButtonClass}`}
                           >
                             加入房间
                           </button>
-                        </div>
+                        </section>
+                      </>
+                    )}
+                  </div>
+
+                  <section className={`${surfaceClass} space-y-4`}>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="space-y-2">
+                        <div className={sectionLabelClass}>公开房间</div>
+                        <h3 className="text-xl font-semibold text-white">大厅列表</h3>
+                        <p className="text-sm leading-7 text-[#ab9fc1]">大厅会自动刷新，你也可以手动刷新当前列表。</p>
                       </div>
-                    </>
-                  )}
-                </>
-              )}
+                      <button
+                        onClick={handleManualRefresh}
+                        disabled={roomListLoading}
+                        className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs font-medium text-white/75 transition hover:border-white/20 hover:bg-white/[0.08] disabled:opacity-45"
+                      >
+                        {roomListLoading ? '刷新中...' : `刷新 ${refreshCountdown}s`}
+                      </button>
+                    </div>
 
-              {error && (
-                <div className="rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
-                  {error}
+                    {roomList.length === 0 ? (
+                      <div className="rounded-[22px] border border-dashed border-white/12 bg-white/[0.03] px-5 py-10 text-center">
+                        <div className="text-3xl">🏜️</div>
+                        <div className="mt-3 text-base font-medium text-white/90">当前没有公开房间</div>
+                        <p className="mt-2 text-sm leading-7 text-[#9f95b8]">你可以先创建一个，或者等待下一轮自动刷新。</p>
+                      </div>
+                    ) : (
+                      <div className="max-h-[30rem] space-y-3 overflow-y-auto pr-1">
+                        {roomList.map((room) => {
+                          const roomStatusMeta = getRoomStatusMeta(room.status);
+
+                          return (
+                            <div
+                              key={room.roomId}
+                              className="rounded-[22px] border border-white/10 bg-white/[0.05] p-4 transition hover:border-cyan-300/25 hover:bg-white/[0.08]"
+                            >
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <div className="truncate text-base font-semibold text-white">{room.hostName}</div>
+                                    <span
+                                      className={`rounded-full border px-2.5 py-1 text-xs font-medium ${roomStatusMeta.className}`}
+                                    >
+                                      {roomStatusMeta.label}
+                                    </span>
+                                  </div>
+                                  <p className="mt-2 text-sm leading-7 text-[#ab9fc1]">
+                                    {room.playerCount}/{room.maxPlayers} 人 · 房间码 {room.roomId}
+                                  </p>
+                                </div>
+
+                                <button
+                                  onClick={() => handleSendJoinRequest(room.roomId)}
+                                  disabled={room.status !== 'waiting' || room.playerCount >= room.maxPlayers}
+                                  className={`sm:shrink-0 ${
+                                    room.status === 'waiting' && room.playerCount < room.maxPlayers
+                                      ? primaryButtonClass
+                                      : secondaryButtonClass
+                                  }`}
+                                >
+                                  {room.status === 'waiting' && room.playerCount < room.maxPlayers ? '申请加入' : '不可加入'}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
                 </div>
-              )}
-            </div>
-          </section>
-        </div>
-      </div>
 
+                {error && (
+                  <div className="rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm leading-7 text-rose-100">
+                    {error}
+                  </div>
+                )}
+              </div>
+            </section>
+          </main>
+        )}
+      </div>
       <JoinRequestModal />
     </div>
   );

@@ -21,20 +21,20 @@ const JoinRequestModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#05030d]/80 p-4 backdrop-blur-md">
-      <div className="relative w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 bg-[#120d22]/92 shadow-2xl shadow-black/60">
-        <div className="absolute inset-0 bg-gradient-to-br from-fuchsia-500/14 via-transparent to-cyan-400/10" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#05030d]/84 p-4 backdrop-blur-md">
+      <div className="relative w-full max-w-md overflow-hidden rounded-[30px] border border-white/10 bg-[#151224]/95 p-6 shadow-[0_26px_90px_rgba(0,0,0,0.46)]">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(217,70,239,0.18),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(34,211,238,0.10),transparent_28%)]" />
 
-        <div className="relative border-b border-white/10 px-6 py-5">
-          <div className="text-sm uppercase tracking-[0.32em] text-white/45">Join Request</div>
-          <h2 className="mt-2 text-2xl font-bold text-white">📩 加入申请</h2>
-        </div>
+        <div className="relative space-y-6">
+          <div>
+            <div className="text-xs font-medium uppercase tracking-[0.18em] text-white/45">Join Request</div>
+            <h2 className="mt-2 text-2xl font-semibold text-white">加入申请</h2>
+          </div>
 
-        <div className="relative space-y-6 px-6 py-6">
-          <div className="rounded-3xl border border-white/10 bg-black/20 p-5 text-center">
+          <div className="rounded-[24px] border border-white/10 bg-black/20 p-5 text-center">
             <div className="text-4xl">👤</div>
-            <p className="mt-3 text-lg leading-8 text-white">
-              玩家 <span className="font-bold text-fuchsia-200">{incomingJoinRequest.playerName}</span> 申请加入你的房间
+            <p className="mt-4 text-base leading-8 text-white">
+              玩家 <span className="font-semibold text-fuchsia-200">{incomingJoinRequest.playerName}</span> 申请加入你的房间
             </p>
             <p className="mt-2 text-sm text-[#a69bbe]">房间码 {incomingJoinRequest.roomId}</p>
           </div>
@@ -42,13 +42,13 @@ const JoinRequestModal: React.FC = () => {
           <div className="flex gap-3">
             <button
               onClick={() => handleRespond(false)}
-              className="flex-1 rounded-2xl border border-white/10 bg-white/6 px-4 py-3 font-semibold text-white/85 transition hover:border-white/20 hover:bg-white/10"
+              className="flex-1 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm font-medium text-white/88 transition hover:border-white/20 hover:bg-white/[0.1]"
             >
               拒绝
             </button>
             <button
               onClick={() => handleRespond(true)}
-              className="flex-1 rounded-2xl bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-500 px-4 py-3 font-semibold text-white shadow-lg shadow-fuchsia-950/40 transition hover:scale-[1.01] hover:brightness-110"
+              className="flex-1 rounded-2xl bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-amber-300 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-black/25 transition hover:brightness-110"
             >
               同意
             </button>
