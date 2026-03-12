@@ -33,10 +33,12 @@ lookup_binary() {
   fi
 
   local search_dirs=(
+    "/opt/homebrew/bin"
     "/usr/local/sbin"
     "/usr/local/bin"
     "/usr/sbin"
     "/usr/bin"
+    "/snap/bin"
     "/sbin"
     "/bin"
   )
@@ -114,7 +116,7 @@ usage() {
   --nginx-available-dir DIR   nginx sites-available 目录
   --nginx-enabled-dir DIR     nginx sites-enabled 目录
   --certbot-email EMAIL       certbot 邮箱，默认留空
-  --enable-https              自动申请证书并生成 https 配置
+  --enable-https              自动安装 certbot（如缺失）、申请证书并生成 https 配置
   --no-install                跳过 npm install
   --no-certbot                不自动申请证书
   --http-only                 只部署 http，不配置 https
@@ -320,6 +322,62 @@ ensure_base_dependencies() {
   ensure_binary "${SYSTEMCTL_BIN}" "systemctl"
 }
 
+ensure_certbot() {
+  if [[ -n "${CERTBOT_BIN}" ]]; then
+    return 0
+  fi
+
+  local apt_bin=""
+  local dnf_bin=""
+  local yum_bin=""
+  local zypper_bin=""
+  local pacman_bin=""
+  local apk_bin=""
+  local snap_bin=""
+
+  apt_bin="$(lookup_binary apt-get || true)"
+  dnf_bin="$(lookup_binary dnf || true)"
+  yum_bin="$(lookup_binary yum || true)"
+  zypper_bin="$(lookup_binary zypper || true)"
+  pacman_bin="$(lookup_binary pacman || true)"
+  apk_bin="$(lookup_binary apk || true)"
+  snap_bin="$(lookup_binary snap || true)"
+
+  if [[ -n "${apt_bin}" ]]; then
+    log "未检测到 certbot，尝试使用 apt-get 安装"
+    run_root_cmd "${apt_bin}" update
+    run_root_cmd env DEBIAN_FRONTEND=noninteractive "${apt_bin}" install -y certbot
+  elif [[ -n "${dnf_bin}" ]]; then
+    log "未检测到 certbot，尝试使用 dnf 安装"
+    run_root_cmd "${dnf_bin}" install -y certbot
+  elif [[ -n "${yum_bin}" ]]; then
+    log "未检测到 certbot，尝试使用 yum 安装"
+    run_root_cmd "${yum_bin}" install -y certbot
+  elif [[ -n "${zypper_bin}" ]]; then
+    log "未检测到 certbot，尝试使用 zypper 安装"
+    run_root_cmd "${zypper_bin}" --non-interactive install certbot
+  elif [[ -n "${pacman_bin}" ]]; then
+    log "未检测到 certbot，尝试使用 pacman 安装"
+    run_root_cmd "${pacman_bin}" -Sy --noconfirm certbot
+  elif [[ -n "${apk_bin}" ]]; then
+    log "未检测到 certbot，尝试使用 apk 安装"
+    run_root_cmd "${apk_bin}" add certbot
+  elif [[ -n "${snap_bin}" ]]; then
+    log "未检测到 certbot，尝试使用 snap 安装"
+    run_root_cmd "${snap_bin}" install --classic certbot
+  else
+    die "缺少命令: certbot，且无法自动识别安装方式。请先手动安装 certbot 后重新运行，例如 Debian/Ubuntu 可执行: sudo apt-get update && sudo apt-get install -y certbot"
+  fi
+
+  if [[ "${DRY_RUN}" -eq 1 ]]; then
+    CERTBOT_BIN="certbot"
+    return 0
+  fi
+
+  CERTBOT_BIN="$(lookup_binary certbot || true)"
+  ensure_binary "${CERTBOT_BIN}" "certbot"
+}
+
 has_certificate() {
   [[ -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]] &&
     [[ -f "/etc/letsencrypt/live/${DOMAIN}/privkey.pem" ]]
@@ -486,105 +544,8 @@ server {
         try_files \$uri =404;
     }
 
-    location /azul/assets/ {
-        try_files \$uri =404;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-
-    location /splendor-duel/assets/ {
-        try_files \$uri =404;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-
-    location /lost-cities/assets/ {
-        try_files \$uri =404;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-
-    location /jaipur/assets/ {
-        try_files \$uri =404;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-
-    location /azul/socket.io {
-        proxy_pass http://127.0.0.1:3001/socket.io;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_buffering off;
-        proxy_read_timeout 600s;
-    }
-
-    location /splendor-duel/socket.io {
-        proxy_pass http://127.0.0.1:3003/socket.io;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_buffering off;
-        proxy_read_timeout 600s;
-    }
-
-    location /lost-cities/ws {
-        proxy_pass http://127.0.0.1:3005/ws;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_buffering off;
-        proxy_read_timeout 600s;
-    }
-
-    location /jaipur/socket.io {
-        proxy_pass http://127.0.0.1:3007/socket.io;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_buffering off;
-        proxy_read_timeout 600s;
-    }
-
-    location /azul/ {
-        add_header Cache-Control "no-cache";
-        try_files \$uri \$uri/ /azul/index.html;
-    }
-
-    location /splendor-duel/ {
-        add_header Cache-Control "no-cache";
-        try_files \$uri \$uri/ /splendor-duel/index.html;
-    }
-
-    location /lost-cities/ {
-        add_header Cache-Control "no-cache";
-        try_files \$uri \$uri/ /lost-cities/index.html;
-    }
-
-    location /jaipur/ {
-        add_header Cache-Control "no-cache";
-        try_files \$uri \$uri/ /jaipur/index.html;
-    }
-
     location / {
-        add_header Cache-Control "no-cache";
-        try_files \$uri \$uri/ /index.html;
+        return 301 https://\$host\$request_uri;
     }
 }
 
@@ -814,7 +775,7 @@ configure_nginx() {
     return 0
   fi
 
-  ensure_binary "${CERTBOT_BIN}" "certbot"
+  ensure_certbot
 
   log "申请 https 证书"
   if [[ -n "${CERTBOT_EMAIL}" ]]; then
