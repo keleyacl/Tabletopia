@@ -348,6 +348,11 @@ function getSocketProtocol(): string {
   return 'ws';
 }
 
+function getSocketBasePath(): string {
+  const baseUrl = import.meta.env.BASE_URL || '/';
+  return baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+}
+
 // ============================================================
 // Store 实现
 // ============================================================
@@ -504,7 +509,8 @@ export const useGameStore = create<GameStoreState>()(
       const { activeHost, activePort, socketSession } = get();
       const protocol = getSocketProtocol();
       const portPart = activePort ? `:${activePort}` : '';
-      const url = `${protocol}://${activeHost}${portPart}/ws/?session=${socketSession}`;
+      const socketBasePath = getSocketBasePath();
+      const url = `${protocol}://${activeHost}${portPart}${socketBasePath}ws/?session=${socketSession}`;
 
       socketService.disconnect();
       socketService.connect(url);

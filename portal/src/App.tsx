@@ -3,9 +3,20 @@ interface GameInfo {
   subtitle: string;
   description: string;
   icon: string;
-  url: string;
+  devPort: number;
+  prodPath: string;
   color: string;
   players: string;
+}
+
+function resolveGameUrl(game: GameInfo): string {
+  if (import.meta.env.DEV && typeof window !== 'undefined') {
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname || 'localhost';
+    return `${protocol}//${hostname}:${game.devPort}/`;
+  }
+
+  return game.prodPath;
 }
 
 const games: GameInfo[] = [
@@ -15,7 +26,8 @@ const games: GameInfo[] = [
     description:
       '从工厂展示区中挑选精美的瓷砖，装饰你的宫殿墙壁。策略性地选择和放置瓷砖，获得最高分数！',
     icon: '🏛️',
-    url: 'http://localhost:3000',
+    devPort: 3000,
+    prodPath: '/azul/',
     color: '#2563eb',
     players: '2-4 人',
   },
@@ -25,7 +37,8 @@ const games: GameInfo[] = [
     description:
       '在宝石市场中与对手展开激烈角逐，收集宝石、购买发展卡、赢得贵族青睐，成为最富有的珠宝商！',
     icon: '💎',
-    url: 'http://localhost:3002',
+    devPort: 3002,
+    prodPath: '/splendor-duel/',
     color: '#9333ea',
     players: '2 人',
   },
@@ -35,7 +48,8 @@ const games: GameInfo[] = [
     description:
       '踏上五条探险之路，合理出牌以获得最高探险收益。每条路线一旦开启就必须承担风险，谨慎决策！',
     icon: '🏔️',
-    url: 'http://localhost:3004',
+    devPort: 3004,
+    prodPath: '/lost-cities/',
     color: '#dc2626',
     players: '2 人',
   },
@@ -45,7 +59,8 @@ const games: GameInfo[] = [
     description:
       '在印度集市中与对手竞争，通过交易货物、获得标记和奖励来积累财富。策略性地买卖，成为最富有的商人！',
     icon: '🐪',
-    url: 'http://localhost:3006',
+    devPort: 3006,
+    prodPath: '/jaipur/',
     color: '#d97706',
     players: '2 人',
   },
@@ -66,7 +81,7 @@ function App() {
         {games.map((game) => (
           <a
             key={game.name}
-            href={game.url}
+            href={resolveGameUrl(game)}
             target="_blank"
             rel="noopener noreferrer"
             className="game-card"

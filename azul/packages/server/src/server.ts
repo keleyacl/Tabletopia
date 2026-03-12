@@ -6,11 +6,15 @@ import { registerSocketEvents } from './socketEvents';
 
 const app = express();
 const httpServer = createServer(app);
+const allowedOrigins = (process.env.ALLOWED_ORIGIN || 'http://localhost:3000')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 // CORS 配置
 app.use(
   cors({
-    origin: 'http://localhost:3000',
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
     credentials: true,
   })
@@ -21,7 +25,7 @@ app.use(express.json());
 // Socket.IO 初始化
 const io = new Server(httpServer, {
   cors: {
-    origin: 'http://localhost:3000',
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
     credentials: true,
   },

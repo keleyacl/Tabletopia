@@ -4,8 +4,11 @@ import Lobby from './pages/Lobby';
 import GamePage from './pages/GamePage';
 
 const App: React.FC = () => {
+  const basename =
+    import.meta.env.BASE_URL === '/' ? undefined : import.meta.env.BASE_URL;
+
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <Routes>
         <Route path="/" element={<Lobby />} />
         <Route path="/game" element={<GamePage />} />

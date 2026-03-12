@@ -1,0 +1,15 @@
+[Unit]
+Description=Tabletopia Lost Cities Server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/tabletopia/lost_cities/packages/server
+Environment=NODE_ENV=production
+Environment=PORT=3005
+ExecStart=/usr/bin/npm run start
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

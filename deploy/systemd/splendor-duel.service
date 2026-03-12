@@ -1,0 +1,16 @@
+[Unit]
+Description=Tabletopia Splendor Duel Server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/tabletopia/splendor-duel/packages/server
+Environment=NODE_ENV=production
+Environment=PORT=3003
+Environment=ALLOWED_ORIGIN=https://game.yuxinlai.com,http://game.yuxinlai.com
+ExecStart=/usr/bin/npm run start
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

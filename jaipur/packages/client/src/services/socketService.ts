@@ -8,6 +8,11 @@ import type {
   ServerToClientEvents 
 } from '@jaipur/shared';
 
+function getSocketPath(): string {
+  const baseUrl = import.meta.env.BASE_URL || '/';
+  return `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}socket.io`;
+}
+
 class SocketService {
   private socket: Socket<ClientToServerEvents, ServerToClientEvents> | null = null;
 
@@ -18,7 +23,8 @@ class SocketService {
   init(): Socket<ClientToServerEvents, ServerToClientEvents> {
     if (this.socket) return this.socket;
 
-    this.socket = io('http://localhost:3007', {
+    this.socket = io(window.location.origin, {
+      path: getSocketPath(),
       transports: ['websocket', 'polling'],
       autoConnect: false,
     });

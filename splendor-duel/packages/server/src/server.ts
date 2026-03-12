@@ -10,15 +10,24 @@ import { setupSocketEvents } from './socketEvents';
 
 const app = express();
 const httpServer = createServer(app);
+const allowedOrigins = (process.env.ALLOWED_ORIGIN || 'http://localhost:3002')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 const io = new Server(httpServer, {
   cors: {
-    origin: ['http://localhost:3002'],
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
   },
 });
 
-app.use(cors());
+app.use(
+  cors({
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
+  })
+);
 app.use(express.json());
 
 // 健康检查

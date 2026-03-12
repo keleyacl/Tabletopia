@@ -15,6 +15,11 @@ import {
 
 type EventCallback = (...args: any[]) => void;
 
+function getSocketPath(): string {
+  const baseUrl = import.meta.env.BASE_URL || '/';
+  return `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}socket.io`;
+}
+
 class SocketService {
   private socket: Socket | null = null;
   private eventHandlers: Map<string, Set<EventCallback>> = new Map();
@@ -25,7 +30,8 @@ class SocketService {
   connect(): void {
     if (this.socket?.connected) return;
 
-    this.socket = io('/', {
+    this.socket = io(window.location.origin, {
+      path: getSocketPath(),
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 10,
