@@ -3,7 +3,7 @@
 // ============================================================
 
 import { WebSocketServer } from 'ws';
-import { setupSocketEvents } from './socketEvents';
+import { setupSocketEvents } from './socketEvents.js';
 
 const PORT = Number(process.env.PORT) || 3005;
 const wss = new WebSocketServer({ port: PORT });

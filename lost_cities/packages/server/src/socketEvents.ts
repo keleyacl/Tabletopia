@@ -21,7 +21,7 @@ import {
   approveJoinRequest,
   rejectJoinRequest,
   cancelJoinRequest,
-} from './roomManager';
+} from './roomManager.js';
 
 /** 向单个 socket 发送消息 */
 function send(socket: WebSocket, type: string, payload: unknown): void {
