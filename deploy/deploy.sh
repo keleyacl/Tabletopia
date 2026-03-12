@@ -21,10 +21,43 @@ BUILD_USER="${SUDO_USER:-$(id -un)}"
 BUILD_GROUP="$(id -gn "${BUILD_USER}")"
 SERVICE_USER="${BUILD_USER}"
 SERVICE_GROUP="${BUILD_GROUP}"
-NODE_BIN="$(command -v node || true)"
-NPM_BIN="$(command -v npm || true)"
 CURRENT_PATH="${PATH}"
 SITE_NAME=""
+
+lookup_binary() {
+  local binary_name="$1"
+
+  if command -v "${binary_name}" >/dev/null 2>&1; then
+    command -v "${binary_name}"
+    return 0
+  fi
+
+  local search_dirs=(
+    "/usr/local/sbin"
+    "/usr/local/bin"
+    "/usr/sbin"
+    "/usr/bin"
+    "/sbin"
+    "/bin"
+  )
+
+  local dir
+  for dir in "${search_dirs[@]}"; do
+    if [[ -x "${dir}/${binary_name}" ]]; then
+      printf '%s\n' "${dir}/${binary_name}"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+NODE_BIN="$(lookup_binary node || true)"
+NPM_BIN="$(lookup_binary npm || true)"
+RSYNC_BIN="$(lookup_binary rsync || true)"
+NGINX_BIN="$(lookup_binary nginx || true)"
+SYSTEMCTL_BIN="$(lookup_binary systemctl || true)"
+CERTBOT_BIN="$(lookup_binary certbot || true)"
 
 resolve_home_dir() {
   local user_name="$1"
@@ -270,14 +303,16 @@ detect_nginx_layout() {
   die "无法自动识别 nginx 配置目录，请传入 --nginx-available-dir 和 --nginx-enabled-dir"
 }
 
-ensure_command() {
-  command -v "$1" >/dev/null 2>&1 || die "缺少命令: $1"
+ensure_binary() {
+  local binary_path="$1"
+  local binary_name="$2"
+  [[ -n "${binary_path}" ]] || die "缺少命令: ${binary_name}"
 }
 
 ensure_base_dependencies() {
-  ensure_command rsync
-  ensure_command nginx
-  ensure_command systemctl
+  ensure_binary "${RSYNC_BIN}" "rsync"
+  ensure_binary "${NGINX_BIN}" "nginx"
+  ensure_binary "${SYSTEMCTL_BIN}" "systemctl"
 }
 
 has_certificate() {
@@ -568,8 +603,8 @@ install_nginx_site() {
     run_root_cmd ln -sf "${target_path}" "${NGINX_ENABLED_DIR}/${SITE_NAME}"
   fi
 
-  run_root_cmd nginx -t
-  run_root_cmd systemctl reload nginx
+  run_root_cmd "${NGINX_BIN}" -t
+  run_root_cmd "${SYSTEMCTL_BIN}" reload nginx
 }
 
 install_systemd_services() {
@@ -605,11 +640,11 @@ install_systemd_services() {
   run_root_cmd install -m 0644 "${TEMP_DIR}/lost-cities.service" "${SYSTEMD_DIR}/lost-cities.service"
   run_root_cmd install -m 0644 "${TEMP_DIR}/jaipur.service" "${SYSTEMD_DIR}/jaipur.service"
 
-  run_root_cmd systemctl daemon-reload
-  run_root_cmd systemctl enable --now azul.service
-  run_root_cmd systemctl enable --now splendor-duel.service
-  run_root_cmd systemctl enable --now lost-cities.service
-  run_root_cmd systemctl enable --now jaipur.service
+  run_root_cmd "${SYSTEMCTL_BIN}" daemon-reload
+  run_root_cmd "${SYSTEMCTL_BIN}" enable --now azul.service
+  run_root_cmd "${SYSTEMCTL_BIN}" enable --now splendor-duel.service
+  run_root_cmd "${SYSTEMCTL_BIN}" enable --now lost-cities.service
+  run_root_cmd "${SYSTEMCTL_BIN}" enable --now jaipur.service
 }
 
 maybe_install_dependencies() {
@@ -645,11 +680,11 @@ sync_static_files() {
     "${WWW_ROOT}/lost-cities" \
     "${WWW_ROOT}/jaipur"
 
-  run_root_cmd rsync -a --delete "${REPO_ROOT}/portal/dist/" "${WWW_ROOT}/"
-  run_root_cmd rsync -a --delete "${REPO_ROOT}/azul/packages/client/dist/" "${WWW_ROOT}/azul/"
-  run_root_cmd rsync -a --delete "${REPO_ROOT}/splendor-duel/packages/client/dist/" "${WWW_ROOT}/splendor-duel/"
-  run_root_cmd rsync -a --delete "${REPO_ROOT}/lost_cities/packages/client/dist/" "${WWW_ROOT}/lost-cities/"
-  run_root_cmd rsync -a --delete "${REPO_ROOT}/jaipur/packages/client/dist/" "${WWW_ROOT}/jaipur/"
+  run_root_cmd "${RSYNC_BIN}" -a --delete "${REPO_ROOT}/portal/dist/" "${WWW_ROOT}/"
+  run_root_cmd "${RSYNC_BIN}" -a --delete "${REPO_ROOT}/azul/packages/client/dist/" "${WWW_ROOT}/azul/"
+  run_root_cmd "${RSYNC_BIN}" -a --delete "${REPO_ROOT}/splendor-duel/packages/client/dist/" "${WWW_ROOT}/splendor-duel/"
+  run_root_cmd "${RSYNC_BIN}" -a --delete "${REPO_ROOT}/lost_cities/packages/client/dist/" "${WWW_ROOT}/lost-cities/"
+  run_root_cmd "${RSYNC_BIN}" -a --delete "${REPO_ROOT}/jaipur/packages/client/dist/" "${WWW_ROOT}/jaipur/"
 }
 
 configure_nginx() {
@@ -669,13 +704,13 @@ configure_nginx() {
     return 0
   fi
 
-  ensure_command certbot
+  ensure_binary "${CERTBOT_BIN}" "certbot"
 
   log "申请 https 证书"
   if [[ -n "${CERTBOT_EMAIL}" ]]; then
-    run_root_cmd certbot certonly --webroot -w "${WWW_ROOT}" -d "${DOMAIN}" --email "${CERTBOT_EMAIL}" --agree-tos --non-interactive
+    run_root_cmd "${CERTBOT_BIN}" certonly --webroot -w "${WWW_ROOT}" -d "${DOMAIN}" --email "${CERTBOT_EMAIL}" --agree-tos --non-interactive
   else
-    run_root_cmd certbot certonly --webroot -w "${WWW_ROOT}" -d "${DOMAIN}" --register-unsafely-without-email --agree-tos --non-interactive
+    run_root_cmd "${CERTBOT_BIN}" certonly --webroot -w "${WWW_ROOT}" -d "${DOMAIN}" --register-unsafely-without-email --agree-tos --non-interactive
   fi
 
   render_https_site_config "${TEMP_DIR}/site.conf"
@@ -695,10 +730,10 @@ verify_deployment() {
   fi
 
   log "验证 systemd 服务状态"
-  systemctl is-active --quiet azul.service
-  systemctl is-active --quiet splendor-duel.service
-  systemctl is-active --quiet lost-cities.service
-  systemctl is-active --quiet jaipur.service
+  "${SYSTEMCTL_BIN}" is-active --quiet azul.service
+  "${SYSTEMCTL_BIN}" is-active --quiet splendor-duel.service
+  "${SYSTEMCTL_BIN}" is-active --quiet lost-cities.service
+  "${SYSTEMCTL_BIN}" is-active --quiet jaipur.service
 }
 
 print_summary() {
@@ -733,6 +768,9 @@ main() {
   printf '  SERVICE_USER=%s\n' "${SERVICE_USER}"
   printf '  SERVICE_GROUP=%s\n' "${SERVICE_GROUP}"
   printf '  NPM_BIN=%s\n' "${NPM_BIN}"
+  printf '  RSYNC_BIN=%s\n' "${RSYNC_BIN}"
+  printf '  NGINX_BIN=%s\n' "${NGINX_BIN}"
+  printf '  SYSTEMCTL_BIN=%s\n' "${SYSTEMCTL_BIN}"
   printf '  NGINX_AVAILABLE_DIR=%s\n' "${NGINX_AVAILABLE_DIR}"
   printf '  NGINX_ENABLED_DIR=%s\n' "${NGINX_ENABLED_DIR}"
 
