@@ -559,6 +559,19 @@ export const useGameStore = create<GameStoreState>()(
         }
       }
 
+      // 自动重连：WebSocket 重连成功后，自动尝试恢复游戏
+      if (type === '_internal:reconnected') {
+        const { reconnectCode, reconnectToken } = get();
+        if (reconnectCode && reconnectToken) {
+          console.log('[Store] WebSocket 重连成功，自动尝试恢复游戏...');
+          socketService.send('room:reconnect', {
+            code: reconnectCode,
+            token: reconnectToken,
+          });
+        }
+        return;
+      }
+
       if (type === 'error') {
         const errorText = mapServerError(payload?.message);
         get().pushToast(errorText);

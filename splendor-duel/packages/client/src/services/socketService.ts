@@ -24,6 +24,10 @@ class SocketService {
       path: getSocketPath(),
       transports: ['websocket', 'polling'],
       autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
     });
 
     this.socket.on('connect', () => {
@@ -94,6 +98,15 @@ class SocketService {
     this.socket.on('room:error', (data: any) => {
       this.emit('room:error', data);
     });
+
+    // 断线重连事件
+    this.socket.on('game:playerDisconnected', (data: any) => {
+      this.emit('game:playerDisconnected', data);
+    });
+
+    this.socket.on('game:playerReconnected', (data: any) => {
+      this.emit('game:playerReconnected', data);
+    });
   }
 
   /**
@@ -126,6 +139,27 @@ class SocketService {
    */
   sendAction(action: GameAction): void {
     this.socket?.emit('game:action', action);
+  }
+
+  /**
+   * 发送重连请求
+   */
+  reconnect(reconnectToken: string): void {
+    this.socket?.emit('game:reconnect', { reconnectToken });
+  }
+
+  /**
+   * 开始游戏（房主操作）
+   */
+  startGame(roomId: string, playerId: string | number): void {
+    this.socket?.emit('room:start_game', { roomId, playerId });
+  }
+
+  /**
+   * 离开房间
+   */
+  leaveRoom(roomId: string, playerId: string | number): void {
+    this.socket?.emit('room:leave', { roomId, playerId });
   }
 
   // ========================================

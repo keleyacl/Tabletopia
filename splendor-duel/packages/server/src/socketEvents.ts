@@ -9,6 +9,9 @@ import { roomManager } from './roomManager';
 import { handleGameAction } from './gameHandler';
 
 export function setupSocketEvents(io: Server): void {
+  // 断线计时器：reconnectToken -> timer，用于游戏进行中断线后的超时清理
+  const disconnectTimers: Map<string, NodeJS.Timeout> = new Map();
+
   function broadcastRoomList() {
     const rooms = roomManager.getPublicRoomList();
     io.emit('lobby:room_list', { rooms });
@@ -21,11 +24,12 @@ export function setupSocketEvents(io: Server): void {
     socket.on('room:create', (data?: { playerName?: string; visibility?: string }) => {
       const playerName = data?.playerName || '玩家1';
       const visibility = (data?.visibility as any) || 'public';
-      const room = roomManager.createRoom(socket.id, playerName, visibility);
+      const { room, reconnectToken } = roomManager.createRoom(socket.id, playerName, visibility);
       socket.join(room.id);
       socket.emit('room:created', {
         roomId: room.id,
         playerId: 0,
+        reconnectToken,
         roomInfo: roomManager.getRoomInfo(room.id),
       });
       broadcastRoomList();
@@ -46,6 +50,7 @@ export function setupSocketEvents(io: Server): void {
       socket.emit('room:joined', {
         roomId: room.id,
         playerId: 1,
+        reconnectToken: result.reconnectToken,
       });
 
       // 通知房间内所有人
@@ -140,6 +145,7 @@ export function setupSocketEvents(io: Server): void {
         io.to(result.socketId!).emit('lobby:join_approved', {
           roomId: room.id,
           playerId: result.playerIndex,
+          reconnectToken: result.reconnectToken,
           roomInfo: roomManager.getRoomInfo(room.id),
         });
 
@@ -176,14 +182,111 @@ export function setupSocketEvents(io: Server): void {
       }
     });
 
+    // ========================================
+    // 连接管理
+    // ========================================
+
     // 断开连接
     socket.on('disconnect', () => {
       console.log(`[Socket] 客户端断开: ${socket.id}`);
-      const result = roomManager.leaveRoom(socket.id);
-      if (result) {
-        io.to(result.roomId).emit('room:player_left');
+
+      const room = roomManager.getPlayerRoom(socket.id);
+
+      if (room && room.gameState) {
+        // 游戏进行中，标记为断线但不移除
+        const disconnectResult = roomManager.markDisconnected(socket.id);
+        if (disconnectResult) {
+          const { roomId, playerName } = disconnectResult;
+
+          // 通知其他玩家
+          io.to(roomId).emit('game:playerDisconnected', {
+            playerName,
+          });
+
+          // 获取该玩家的 reconnectToken 用于设置超时清理
+          // 从 disconnectedPlayers 中查找
+          let tokenForTimer: string | null = null;
+          for (const [token, dp] of disconnectResult.room.disconnectedPlayers.entries()) {
+            if (dp.originalSocketId === socket.id) {
+              tokenForTimer = token;
+              break;
+            }
+          }
+
+          if (tokenForTimer) {
+            // 60 秒后若未重连，清理玩家
+            const timer = setTimeout(() => {
+              const cleanupResult = roomManager.cleanupDisconnectedPlayer(tokenForTimer!);
+              disconnectTimers.delete(tokenForTimer!);
+              if (cleanupResult) {
+                io.to(cleanupResult.roomId).emit('room:player_left');
+                broadcastRoomList();
+              }
+            }, 60000);
+
+            disconnectTimers.set(tokenForTimer, timer);
+          }
+        }
+      } else {
+        // 游戏未开始，直接移除玩家
+        const result = roomManager.leaveRoom(socket.id);
+        if (result) {
+          io.to(result.roomId).emit('room:player_left');
+        }
       }
+
       broadcastRoomList();
+    });
+
+    // 重连处理
+    socket.on('game:reconnect', (data: { reconnectToken: string }, callback?: (response: unknown) => void) => {
+      const { reconnectToken } = data;
+
+      const result = roomManager.reconnectPlayer(socket.id, reconnectToken);
+      if (!result.success) {
+        const errorResponse = { success: false, error: result.error };
+        if (callback) callback(errorResponse);
+        else socket.emit('game:error', result.error);
+        return;
+      }
+
+      const { roomId, room, playerIndex, playerName } = result;
+
+      // 清除断线计时器
+      const timer = disconnectTimers.get(reconnectToken);
+      if (timer) {
+        clearTimeout(timer);
+        disconnectTimers.delete(reconnectToken);
+      }
+
+      // 加入 Socket.IO 房间
+      socket.join(roomId!);
+
+      // 发送当前游戏状态
+      const response = {
+        success: true,
+        roomId,
+        playerIndex,
+        roomInfo: roomManager.getRoomInfo(roomId!),
+        gameState: room!.gameState,
+      };
+
+      if (callback) callback(response);
+      else {
+        socket.emit('game:state_update', room!.gameState!);
+      }
+
+      // 通知其他玩家重连成功
+      socket.to(roomId!).emit('game:playerReconnected', {
+        playerName,
+      });
+
+      console.log(`[Socket] 玩家 ${playerName} 重连到房间 ${roomId}`);
+    });
+
+    // 心跳
+    socket.on('ping', () => {
+      socket.emit('pong');
     });
   });
 }

@@ -35,6 +35,8 @@ interface RoomState {
   showJoinRequestModal: boolean;
   /** 房间可见性 */
   roomVisibility: RoomVisibility;
+  /** 重连令牌 */
+  reconnectToken: string | null;
 }
 
 interface RoomStore extends RoomState {
@@ -51,6 +53,7 @@ interface RoomStore extends RoomState {
   setIncomingJoinRequest: (request: JoinRequest | null) => void;
   setShowJoinRequestModal: (show: boolean) => void;
   setRoomVisibility: (visibility: RoomVisibility) => void;
+  setReconnectToken: (token: string | null) => void;
   reset: () => void;
 }
 
@@ -69,6 +72,7 @@ const initialState: RoomState = {
   incomingJoinRequest: null,
   showJoinRequestModal: false,
   roomVisibility: 'public',
+  reconnectToken: null,
 };
 
 export const useRoomStore = create<RoomStore>()(
@@ -157,6 +161,12 @@ export const useRoomStore = create<RoomStore>()(
     setRoomVisibility: (visibility: RoomVisibility) => {
       set((state) => {
         state.roomVisibility = visibility;
+      });
+    },
+
+    setReconnectToken: (token: string | null) => {
+      set((state) => {
+        state.reconnectToken = token;
       });
     },
 

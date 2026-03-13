@@ -38,6 +38,8 @@ const Lobby: React.FC = () => {
   const setIncomingJoinRequest = useRoomStore((s) => s.setIncomingJoinRequest);
   const setShowJoinRequestModal = useRoomStore((s) => s.setShowJoinRequestModal);
   const setRoomVisibility = useRoomStore((s) => s.setRoomVisibility);
+  const reconnectToken = useRoomStore((s) => s.reconnectToken);
+  const setReconnectToken = useRoomStore((s) => s.setReconnectToken);
 
   const setGameState = useGameStore((s) => s.setGameState);
 
@@ -83,6 +85,13 @@ const Lobby: React.FC = () => {
   useEffect(() => {
     const unsubConnect = socketService.on('_internal_connect', () => {
       setConnectionStatus('connected');
+
+      // 自动重连：如果有 reconnectToken，说明之前在游戏中断线，自动尝试重连
+      const currentToken = useRoomStore.getState().reconnectToken;
+      if (currentToken) {
+        console.log('[Lobby] 检测到 reconnectToken，自动尝试重连...');
+        socketService.reconnect(currentToken);
+      }
     });
     const unsubDisconnect = socketService.on('_internal_disconnect', () => {
       setConnectionStatus('disconnected');
@@ -96,11 +105,13 @@ const Lobby: React.FC = () => {
       setRoom(data.roomId, data.playerId);
       setIsHost(true);
       if (data.roomInfo) setRoomInfo(data.roomInfo);
+      if (data.reconnectToken) setReconnectToken(data.reconnectToken);
     });
 
     const unsubRoomJoined = socketService.on('room:joined', (data: any) => {
       setRoom(data.roomId, data.playerId);
       setIsHost(false);
+      if (data.reconnectToken) setReconnectToken(data.reconnectToken);
     });
 
     const unsubRoomError = socketService.on('room:error', (data: any) => {
@@ -125,6 +136,7 @@ const Lobby: React.FC = () => {
       setRoom(data.roomId, data.playerId);
       setIsHost(false);
       if (data.roomInfo) setRoomInfo(data.roomInfo);
+      if (data.reconnectToken) setReconnectToken(data.reconnectToken);
       setPendingJoinRequest(null);
     });
 
@@ -147,6 +159,15 @@ const Lobby: React.FC = () => {
       navigate('/game');
     });
 
+    // 断线/重连事件
+    const unsubPlayerDisconnected = socketService.on('game:playerDisconnected', (data: any) => {
+      setError(`${data.playerName} 已断线`);
+    });
+
+    const unsubPlayerReconnected = socketService.on('game:playerReconnected', (data: any) => {
+      setError(`${data.playerName} 已重连`);
+    });
+
     return () => {
       unsubConnect();
       unsubDisconnect();
@@ -162,6 +183,8 @@ const Lobby: React.FC = () => {
       unsubRequestCancelled();
       unsubPlayerJoined();
       unsubStateUpdate();
+      unsubPlayerDisconnected();
+      unsubPlayerReconnected();
     };
   }, [
     setConnectionStatus,
@@ -283,7 +306,7 @@ const Lobby: React.FC = () => {
               {isHost && roomInfo && roomInfo.players.length >= 2 && (
                 <button
                   className="btn btn-primary btn-large"
-                  onClick={() => socketService.startGame(roomId, playerId ?? '')}
+                  onClick={() => socketService.startGame(roomId!, playerId!)}
                 >
                   开始游戏
                 </button>
@@ -291,8 +314,8 @@ const Lobby: React.FC = () => {
               <button
                 className="btn btn-secondary"
                 onClick={() => {
-                  if (roomId) socketService.leaveRoom(roomId, playerId ?? '');
-                  useRoomStore.getState().resetRoom();
+                  if (roomId) socketService.leaveRoom(roomId, playerId!);
+                  useRoomStore.getState().reset();
                 }}
               >
                 离开房间

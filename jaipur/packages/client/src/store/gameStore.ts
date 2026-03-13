@@ -138,6 +138,13 @@ export const useGameStore = create<GameStore>()(
         rawSocket.on('connect', () => {
           set((s) => { s.connected = true; });
           console.log('[Store] Socket 已连接');
+
+          // 自动重连：如果有 reconnectToken，说明之前在游戏中断线，自动尝试重连
+          const { reconnectToken } = get();
+          if (reconnectToken) {
+            console.log('[Store] 检测到 reconnectToken，自动尝试重连...');
+            socketService.emit('room:reconnect', { reconnectToken });
+          }
         });
         rawSocket.on('disconnect', () => {
           set((s) => { s.connected = false; });
