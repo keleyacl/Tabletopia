@@ -23,7 +23,7 @@ const TILE_COLOR_MAP: Record<string, string> = {
   [TileColor.Blue]: 'tile-blue',
   [TileColor.Yellow]: 'tile-yellow',
   [TileColor.Red]: 'tile-red',
-  [TileColor.Black]: 'tile-black',
+  [TileColor.Green]: 'tile-green',
   [TileColor.White]: 'tile-white',
   [TileColor.FirstPlayer]: 'tile-first-player',
 };
@@ -33,7 +33,7 @@ const TILE_COLOR_NAME: Record<string, string> = {
   [TileColor.Blue]: '蓝',
   [TileColor.Yellow]: '黄',
   [TileColor.Red]: '红',
-  [TileColor.Black]: '黑',
+  [TileColor.Green]: '绿',
   [TileColor.White]: '白',
   [TileColor.FirstPlayer]: '1',
 };

@@ -10,7 +10,7 @@ export enum TileColor {
   Blue = 'BLUE',
   Yellow = 'YELLOW',
   Red = 'RED',
-  Black = 'BLACK',
+  Green = 'GREEN',
   White = 'WHITE',
   FirstPlayer = 'FIRST_PLAYER',
 }
@@ -20,7 +20,7 @@ export const STANDARD_COLORS: TileColor[] = [
   TileColor.Blue,
   TileColor.Yellow,
   TileColor.Red,
-  TileColor.Black,
+  TileColor.Green,
   TileColor.White,
 ];
 

@@ -194,8 +194,8 @@
   box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.3), inset 0 2px 0 rgba(255, 255, 255, 0.15);
 }
 
-.tile-black {
-  background: var(--tile-black);
+.tile-green {
+  background: var(--tile-green);
   box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.1);
 }
 
