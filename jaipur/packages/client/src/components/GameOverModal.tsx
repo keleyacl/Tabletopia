@@ -2,8 +2,108 @@
 // 斋浦尔 - 游戏结束弹窗组件（支持局结束和比赛结束两种模式）
 // ============================================================
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '../store/gameStore';
+
+/** 数字从 0 滚动到目标值的 Hook */
+function useCountUp(target: number, duration: number, enabled: boolean): number {
+  const [current, setCurrent] = useState(0);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!enabled) {
+      setCurrent(0);
+      return;
+    }
+    if (target === 0) {
+      setCurrent(0);
+      return;
+    }
+    const startTime = performance.now();
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCurrent(Math.round(eased * target));
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(animate);
+      }
+    };
+    rafRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [target, duration, enabled]);
+
+  return current;
+}
+
+/** 局结束分项计算动画组件 */
+const RoundScoreBreakdown: React.FC<{
+  tokenScore: number;
+  bonusScore: number;
+  camelScore: number;
+  totalScore: number;
+  label: string;
+  colorClass: string;
+}> = ({ tokenScore, bonusScore, camelScore, totalScore, label, colorClass }) => {
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    timers.push(setTimeout(() => setStep(1), 300));
+    timers.push(setTimeout(() => setStep(2), 800));
+    timers.push(setTimeout(() => setStep(3), 1300));
+    timers.push(setTimeout(() => setStep(4), 1900));
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  const tokenVal = useCountUp(tokenScore, 400, step >= 1);
+  const bonusVal = useCountUp(bonusScore, 400, step >= 2);
+  const camelVal = useCountUp(camelScore, 400, step >= 3);
+  const totalVal = useCountUp(totalScore, 500, step >= 4);
+
+  return (
+    <div className="flex-1 min-w-0">
+      <div className={`text-sm font-bold mb-2 ${colorClass}`}>{label}</div>
+      <div className="space-y-1.5">
+        <div
+          className={`flex justify-between items-center bg-white/60 px-2 py-1 rounded text-sm transition-all duration-300 ${
+            step >= 1 ? 'animate-fade-slide-in opacity-100' : 'opacity-0'
+          }`}
+        >
+          <span className="text-gray-600">💰 货物标记</span>
+          <span className={`font-bold ${colorClass}`}>{step >= 1 ? tokenVal : 0}</span>
+        </div>
+        <div
+          className={`flex justify-between items-center bg-white/60 px-2 py-1 rounded text-sm transition-all duration-300 ${
+            step >= 2 ? 'animate-fade-slide-in opacity-100' : 'opacity-0'
+          }`}
+        >
+          <span className="text-gray-600">🏆 奖励标记</span>
+          <span className={`font-bold ${colorClass}`}>{step >= 2 ? bonusVal : 0}</span>
+        </div>
+        <div
+          className={`flex justify-between items-center bg-white/60 px-2 py-1 rounded text-sm transition-all duration-300 ${
+            step >= 3 ? 'animate-fade-slide-in opacity-100' : 'opacity-0'
+          }`}
+        >
+          <span className="text-gray-600">🐪 骆驼王</span>
+          <span className={`font-bold ${colorClass}`}>{step >= 3 ? camelVal : 0}</span>
+        </div>
+        <div
+          className={`flex justify-between items-center bg-white/80 px-2 py-1.5 rounded border-t border-gray-200 transition-all duration-300 ${
+            step >= 4 ? 'animate-fade-slide-in opacity-100' : 'opacity-0'
+          }`}
+        >
+          <span className={`font-bold text-sm ${colorClass}`}>合计</span>
+          <span className={`font-bold text-lg ${colorClass}`}>{step >= 4 ? totalVal : 0}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const GameOverModal: React.FC = () => {
   const gameState = useGameStore((state) => state.gameState);
@@ -12,26 +112,27 @@ const GameOverModal: React.FC = () => {
   const nextRound = useGameStore((state) => state.nextRound);
   const rematch = useGameStore((state) => state.rematch);
 
-  // 只在局结束或比赛结束时显示
   if ((roomState !== 'round_over' && roomState !== 'finished') || !gameState) return null;
 
   const { myPlayer, opponent, winner, roundWins, currentRound, matchWinner, roundResults } = gameState;
   const isRoundOver = roomState === 'round_over';
   const isMatchFinished = roomState === 'finished';
 
-  // 局结束弹窗
   if (isRoundOver) {
     const isRoundWinner = winner === playerIndex;
     const isRoundDraw = winner === null;
 
+    const myTokenScore = myPlayer.tokens.reduce((sum: number, v: number) => sum + v, 0);
+    const myBonusScore = myPlayer.bonusTokens.reduce((sum: number, v: number) => sum + v, 0);
+    const myCamelScore = Math.max(0, myPlayer.score - myTokenScore - myBonusScore);
+
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div className="bg-[var(--color-surface)] rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
-          <div className="text-center mb-6">
+        <div className="bg-[var(--color-surface)] rounded-xl shadow-2xl max-w-lg w-full mx-4 p-6">
+          <div className="text-center mb-5">
             {isRoundWinner && <div className="text-5xl mb-3">🎉</div>}
             {isRoundDraw && <div className="text-5xl mb-3">🤝</div>}
             {!isRoundWinner && !isRoundDraw && <div className="text-5xl mb-3">😤</div>}
-
             <h2 className="text-2xl font-bold text-[var(--color-primary)] mb-2">
               第 {currentRound} 局结束
             </h2>
@@ -40,8 +141,7 @@ const GameOverModal: React.FC = () => {
             </p>
           </div>
 
-          {/* 比分进度 */}
-          <div className="flex justify-center items-center gap-4 mb-6">
+          <div className="flex justify-center items-center gap-4 mb-5">
             <div className="text-center">
               <div className="text-sm text-gray-500 mb-1">我</div>
               <div className="text-3xl font-bold text-[var(--color-primary)]">{playerIndex === 0 ? roundWins[0] : roundWins[1]}</div>
@@ -53,19 +153,39 @@ const GameOverModal: React.FC = () => {
             </div>
           </div>
 
-          {/* 本局分数对比 */}
-          <div className="space-y-3 mb-6">
-            <div className="bg-white/50 p-3 rounded-lg flex justify-between items-center">
-              <span className="font-bold text-[var(--color-primary)]">我的得分</span>
-              <span className="text-xl font-bold text-[var(--color-primary)]">{myPlayer.score}</span>
-            </div>
-            <div className="bg-white/50 p-3 rounded-lg flex justify-between items-center">
-              <span className="font-bold text-gray-600">对手得分</span>
-              <span className="text-xl font-bold text-gray-600">{opponent.score}</span>
+          <div className="flex gap-4 mb-5">
+            <RoundScoreBreakdown
+              tokenScore={myTokenScore}
+              bonusScore={myBonusScore}
+              camelScore={myCamelScore}
+              totalScore={myPlayer.score}
+              label="我的得分"
+              colorClass="text-[var(--color-primary)]"
+            />
+            <div className="w-px bg-gray-200 self-stretch" />
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-bold mb-2 text-gray-600">对手得分</div>
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center bg-white/60 px-2 py-1 rounded text-sm">
+                  <span className="text-gray-600">💰 货物标记</span>
+                  <span className="font-bold text-gray-600">{opponent.tokenCount}</span>
+                </div>
+                <div className="flex justify-between items-center bg-white/60 px-2 py-1 rounded text-sm">
+                  <span className="text-gray-600">🏆 奖励标记</span>
+                  <span className="font-bold text-gray-600">{opponent.bonusTokenCount}</span>
+                </div>
+                <div className="flex justify-between items-center bg-white/60 px-2 py-1 rounded text-sm">
+                  <span className="text-gray-600">🐪 骆驼王</span>
+                  <span className="font-bold text-gray-600">—</span>
+                </div>
+                <div className="flex justify-between items-center bg-white/80 px-2 py-1.5 rounded border-t border-gray-200">
+                  <span className="font-bold text-sm text-gray-600">合计</span>
+                  <span className="font-bold text-lg text-gray-600">{opponent.score}</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* 开始下一局 */}
           <div className="text-center">
             <button
               onClick={nextRound}
@@ -79,7 +199,6 @@ const GameOverModal: React.FC = () => {
     );
   }
 
-  // 比赛结束弹窗
   if (isMatchFinished) {
     const isMatchWinner = matchWinner === playerIndex;
     const isMatchDraw = matchWinner === null;
@@ -91,7 +210,6 @@ const GameOverModal: React.FC = () => {
             {isMatchWinner && <div className="text-6xl mb-4">🏆</div>}
             {isMatchDraw && <div className="text-6xl mb-4">🤝</div>}
             {!isMatchWinner && !isMatchDraw && <div className="text-6xl mb-4">😢</div>}
-
             <h2 className="text-3xl font-bold text-[var(--color-primary)] mb-2">
               {isMatchWinner ? '恭喜获胜！' : isMatchDraw ? '平局！' : '比赛结束'}
             </h2>
@@ -100,7 +218,6 @@ const GameOverModal: React.FC = () => {
             </p>
           </div>
 
-          {/* 最终比分 */}
           <div className="flex justify-center items-center gap-4 mb-4">
             <div className="text-center">
               <div className="text-sm text-gray-500 mb-1">我</div>
@@ -113,7 +230,6 @@ const GameOverModal: React.FC = () => {
             </div>
           </div>
 
-          {/* 每局详情 */}
           <div className="space-y-2 mb-6">
             <h3 className="text-sm font-bold text-gray-500 text-center">每局详情</h3>
             {roundResults.map((result, index) => {
@@ -133,7 +249,6 @@ const GameOverModal: React.FC = () => {
             })}
           </div>
 
-          {/* 操作按钮 */}
           <div className="flex gap-3 justify-center">
             <button
               onClick={rematch}

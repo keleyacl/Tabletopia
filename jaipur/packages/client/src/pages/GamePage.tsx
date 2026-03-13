@@ -43,8 +43,20 @@ const GamePage: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="text-lg font-bold text-[var(--color-primary)]">
-                得分: {myPlayer.score}
+              <div className="flex flex-col items-end gap-1">
+                <div className="text-lg font-bold text-[var(--color-primary)]">
+                  得分: {myPlayer.score}
+                </div>
+                {myPlayer.bonusTokens.length > 0 && (
+                  <div className="flex items-center gap-1 flex-wrap justify-end">
+                    <span className="text-xs text-gray-500">奖励:</span>
+                    {myPlayer.bonusTokens.map((v, i) => (
+                      <span key={i} className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-bold">
+                        +{v}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
               {isMyTurn && (
                 <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
