@@ -86,7 +86,7 @@ describe('calculateFloorPenalty', () => {
   it('7 个瓷砖应该扣 14 分', () => {
     const floorLine: (TileColor | null)[] = [
       TileColor.Blue, TileColor.Red, TileColor.Yellow,
-      TileColor.Black, TileColor.White, TileColor.Blue, TileColor.Red,
+      TileColor.Green, TileColor.White, TileColor.Blue, TileColor.Red,
     ];
     // -1 -1 -2 -2 -2 -3 -3 = -14
     expect(calculateFloorPenalty(floorLine)).toBe(-14);

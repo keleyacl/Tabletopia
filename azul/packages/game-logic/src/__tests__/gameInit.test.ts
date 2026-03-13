@@ -82,7 +82,7 @@ describe('drawTiles', () => {
 
   it('袋子不够时应该从弃置堆补充后继续', () => {
     const bag = [TileColor.Blue, TileColor.Red];
-    const discardPile = [TileColor.Yellow, TileColor.Black, TileColor.White];
+    const discardPile = [TileColor.Yellow, TileColor.Green, TileColor.White];
     const { drawn } = drawTiles(bag, discardPile, 4);
     expect(drawn.length).toBe(4);
   });
