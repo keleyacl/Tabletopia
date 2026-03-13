@@ -4,6 +4,7 @@ import {
   createRoom,
   joinRoom,
   leaveRoom,
+  getRoom,
   findRoomBySocketId,
   updatePlayerConnection,
   getRoomInfo,
@@ -26,6 +27,9 @@ import {
  * 注册所有 Socket.IO 事件
  */
 export function registerSocketEvents(io: Server): void {
+  // 断线计时器：playerId -> timer，用于游戏进行中断线后的超时清理
+  const disconnectTimers: Map<string, NodeJS.Timeout> = new Map();
+
   // 广播房间列表更新
   function broadcastRoomList() {
     const rooms = getPublicRoomList();
@@ -341,6 +345,22 @@ export function registerSocketEvents(io: Server): void {
           console.log(
             `[Room] ${player?.name} 在房间 ${room.id} 中断线（游戏进行中）`
           );
+
+          // 60 秒后若未重连，清理玩家并检查是否删除房间
+          const timer = setTimeout(() => {
+            const currentRoom = getRoom(room.id);
+            if (!currentRoom) return; // 房间已不存在
+
+            const currentPlayer = currentRoom.players.find((p) => p.id === playerId);
+            if (!currentPlayer) return; // 玩家已被移除
+            if (currentPlayer.connected) return; // 玩家已重连，跳过
+
+            console.log(`[Room] 玩家 ${player?.name} 断线超时，清理玩家`);
+            handlePlayerLeave(socket, room.id, playerId);
+            disconnectTimers.delete(playerId);
+          }, 60000);
+
+          disconnectTimers.set(playerId, timer);
         } else {
           // 游戏未开始，直接移除玩家
           handlePlayerLeave(socket, room.id, playerId);
@@ -374,6 +394,14 @@ export function registerSocketEvents(io: Server): void {
 
         // 更新连接状态
         updatePlayerConnection(roomId, playerId, socket.id, true);
+
+        // 清除断线计时器
+        const disconnectTimer = disconnectTimers.get(playerId);
+        if (disconnectTimer) {
+          clearTimeout(disconnectTimer);
+          disconnectTimers.delete(playerId);
+        }
+
         socket.join(roomId);
 
         // 获取当前游戏状态
