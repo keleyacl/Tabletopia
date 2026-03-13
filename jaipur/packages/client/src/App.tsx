@@ -15,7 +15,7 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
       {/* 根据房间状态显示不同页面 */}
       {(roomState === 'idle' || roomState === 'waiting') && <Lobby />}
-      {(roomState === 'playing' || roomState === 'finished') && <GamePage />}
+      {(roomState === 'playing' || roomState === 'round_over' || roomState === 'finished') && <GamePage />}
 
       {/* 全局弹窗（仅在 App 层渲染一次） */}
       {showRulesModal && <RulesModal />}

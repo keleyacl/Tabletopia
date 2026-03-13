@@ -7,22 +7,128 @@ import { immer } from 'zustand/middleware/immer';
 import type {
   PlayerView,
   GameAction,
+  GoodType,
   TradeGoodType,
   ChatMessage,
   RoomListItem,
   JoinRequest,
   RoomVisibility,
 } from '@jaipur/shared';
+import { GOOD_NAMES, TRADE_GOODS } from '@jaipur/shared';
 import { socketService } from '../services/socketService';
 
 // ============================================================
-// Toast 类型
+// 操作描述辅助函数
+// ============================================================
+
+/**
+ * 对比前后两个市场数组，找出被移除的牌
+ * 返回被移除的牌类型数组
+ */
+function findRemovedGoods(prev: GoodType[], next: GoodType[]): GoodType[] {
+  const nextCopy = [...next];
+  const removed: GoodType[] = [];
+  for (const good of prev) {
+    const idx = nextCopy.indexOf(good);
+    if (idx !== -1) {
+      nextCopy.splice(idx, 1);
+    } else {
+      removed.push(good);
+    }
+  }
+  return removed;
+}
+
+/**
+ * 通过对比前后 PlayerView 状态差异，推断并描述发生了什么操作
+ */
+function describeAction(
+  prev: PlayerView,
+  next: PlayerView,
+  myPlayerIndex: 0 | 1
+): string | null {
+  // 判断是谁的操作：回合切换了说明上一个回合的人完成了操作
+  const actorIndex = prev.currentPlayerIndex;
+  const isMyAction = actorIndex === myPlayerIndex;
+  const actor = isMyAction ? '你' : '对手';
+
+  // --- 检测出售 ---
+  // 出售的特征：某种货物标记堆减少，且操作者分数增加
+  for (const goodType of TRADE_GOODS) {
+    const prevRemaining = prev.tokenInfo[goodType].remaining;
+    const nextRemaining = next.tokenInfo[goodType].remaining;
+    if (nextRemaining < prevRemaining) {
+      const soldCount = prevRemaining - nextRemaining;
+      return `${actor}出售了 ${soldCount} 张${GOOD_NAMES[goodType]}`;
+    }
+  }
+
+  // --- 检测取骆驼 ---
+  // 特征：市场中骆驼消失，操作者骆驼数增加
+  const prevMarketCamels = prev.market.filter((g) => g === 'CAMEL').length;
+  const nextMarketCamels = next.market.filter((g) => g === 'CAMEL').length;
+  if (prevMarketCamels > 0 && nextMarketCamels === 0 && prevMarketCamels > 1) {
+    // 取走了所有骆驼（至少2只才算取骆驼操作，1只可能是取一张牌后补上的）
+    return `${actor}取走了 ${prevMarketCamels} 只骆驼`;
+  }
+  // 单只骆驼也可能是取骆驼操作
+  if (prevMarketCamels === 1 && nextMarketCamels === 0) {
+    const prevMyCamels = isMyAction ? prev.myPlayer.camels : prev.opponent.camels;
+    const nextMyCamels = isMyAction ? next.myPlayer.camels : next.opponent.camels;
+    if (nextMyCamels > prevMyCamels) {
+      return `${actor}取走了 1 只骆驼`;
+    }
+  }
+
+  // --- 检测交换 ---
+  // 特征：市场牌变化但数量不变（或因骆驼补充而变化），手牌也变化
+  const prevHandCount = isMyAction ? prev.myPlayer.hand.length : prev.opponent.handCount;
+  const nextHandCount = isMyAction ? next.myPlayer.hand.length : next.opponent.handCount;
+  const removedFromMarket = findRemovedGoods(prev.market, next.market);
+  const prevNonCamelMarket = prev.market.filter((g) => g !== 'CAMEL').length;
+  const nextNonCamelMarket = next.market.filter((g) => g !== 'CAMEL').length;
+
+  // 交换：市场有牌被移除，但手牌数量没有增加（或者市场非骆驼牌数量不变）
+  if (removedFromMarket.length >= 2 && nextHandCount <= prevHandCount + removedFromMarket.length) {
+    // 如果市场牌数量不变或变化不大，且有多张牌被替换，很可能是交换
+    const addedToMarket = findRemovedGoods(next.market, prev.market);
+    if (addedToMarket.length === 0 && removedFromMarket.length >= 2) {
+      const goodNames = removedFromMarket
+        .filter((g) => g !== 'CAMEL')
+        .map((g) => GOOD_NAMES[g])
+        .join('、');
+      return `${actor}从市场交换了${goodNames || '牌'}`;
+    }
+  }
+
+  // --- 检测取一张牌 ---
+  // 特征：市场减少一张非骆驼牌，手牌增加
+  if (removedFromMarket.length === 1 && removedFromMarket[0] !== 'CAMEL') {
+    return `${actor}从市场取了一张${GOOD_NAMES[removedFromMarket[0]]}`;
+  }
+
+  // --- 兜底：检测回合是否切换 ---
+  if (prev.currentPlayerIndex !== next.currentPlayerIndex) {
+    return `${actor}完成了操作`;
+  }
+
+  return null;
+}
+
+// ============================================================
+// Toast & 操作历史类型
 // ============================================================
 
 interface Toast {
   id: string;
   message: string;
   type: 'info' | 'error' | 'success';
+}
+
+export interface ActionHistoryEntry {
+  id: number;
+  text: string;
+  at: string;
 }
 
 // ============================================================
@@ -49,7 +155,12 @@ interface GameStore {
   // --- 通知与聊天 ---
   toasts: Toast[];
   chatMessages: ChatMessage[];
-  actionHistory: string[];
+  actionHistory: ActionHistoryEntry[];
+
+  // --- 操作历史 ---
+  showActionHistory: boolean;
+  _prevPlayerView: PlayerView | null;
+  _nextActionHistoryId: number;
 
   // --- 大厅状态 ---
   roomList: RoomListItem[];
@@ -87,6 +198,8 @@ interface GameStore {
   sendChatMessage: (content: string) => void;
   addToast: (message: string, type?: 'info' | 'error' | 'success') => void;
   removeToast: (id: string) => void;
+  setShowActionHistory: (show: boolean) => void;
+  pushActionHistory: (text: string) => void;
   toggleRulesModal: () => void;
   toggleGameMenu: () => void;
 }
@@ -111,6 +224,9 @@ export const useGameStore = create<GameStore>()(
     toasts: [],
     chatMessages: [],
     actionHistory: [],
+    showActionHistory: false,
+    _prevPlayerView: null,
+    _nextActionHistoryId: 1,
     showRulesModal: false,
     showGameMenu: false,
     roomList: [],
@@ -188,16 +304,32 @@ export const useGameStore = create<GameStore>()(
         set((s) => {
           s.gameState = data.playerView;
           s.roomState = 'playing';
+          s._prevPlayerView = data.playerView;
+          s.actionHistory = [];
+          s._nextActionHistoryId = 1;
         });
+        get().pushActionHistory('游戏开始');
+        get().addToast('游戏开始！', 'info');
       });
 
       socketService.on('game:state_update', (data) => {
+        const prev = get()._prevPlayerView;
+        const playerIndex = get().playerIndex;
         set((s) => {
           s.gameState = data.playerView;
           s.selectedMarketIndices = [];
           s.selectedHandIndices = [];
           s.selectedCamelCount = 0;
+          s._prevPlayerView = data.playerView;
         });
+        // 对比前后状态生成操作描述
+        if (prev && playerIndex !== null) {
+          const actionText = describeAction(prev, data.playerView, playerIndex);
+          if (actionText) {
+            get().addToast(actionText, 'info');
+            get().pushActionHistory(actionText);
+          }
+        }
       });
 
       socketService.on('game:error', (data) => {
@@ -205,10 +337,23 @@ export const useGameStore = create<GameStore>()(
       });
 
       socketService.on('game:round_ended', (data) => {
+        const prev = get()._prevPlayerView;
+        const playerIndex = get().playerIndex;
         set((s) => {
           s.gameState = data.playerView;
           s.roomState = 'round_over';
+          s._prevPlayerView = data.playerView;
         });
+        // 先记录最后一个操作
+        if (prev && playerIndex !== null) {
+          const actionText = describeAction(prev, data.playerView, playerIndex);
+          if (actionText) {
+            get().pushActionHistory(actionText);
+          }
+        }
+        const round = data.playerView.currentRound;
+        get().pushActionHistory(`第 ${round} 局结束`);
+        get().addToast(`第 ${round} 局结束`, 'info');
       });
 
       socketService.on('game:new_round', (data) => {
@@ -218,14 +363,30 @@ export const useGameStore = create<GameStore>()(
           s.selectedMarketIndices = [];
           s.selectedHandIndices = [];
           s.selectedCamelCount = 0;
+          s._prevPlayerView = data.playerView;
         });
+        const round = data.playerView.currentRound;
+        get().pushActionHistory(`第 ${round} 局开始`);
+        get().addToast(`第 ${round} 局开始！`, 'info');
       });
 
       socketService.on('game:match_ended', (data) => {
+        const prev = get()._prevPlayerView;
+        const playerIndex = get().playerIndex;
         set((s) => {
           s.gameState = data.playerView;
           s.roomState = 'finished';
+          s._prevPlayerView = data.playerView;
         });
+        // 先记录最后一个操作
+        if (prev && playerIndex !== null) {
+          const actionText = describeAction(prev, data.playerView, playerIndex);
+          if (actionText) {
+            get().pushActionHistory(actionText);
+          }
+        }
+        get().pushActionHistory('比赛结束');
+        get().addToast('比赛结束！', 'info');
       });
 
       socketService.on('game:rematch_started', (data) => {
@@ -235,7 +396,12 @@ export const useGameStore = create<GameStore>()(
           s.selectedMarketIndices = [];
           s.selectedHandIndices = [];
           s.selectedCamelCount = 0;
+          s._prevPlayerView = data.playerView;
+          s.actionHistory = [];
+          s._nextActionHistoryId = 1;
         });
+        get().pushActionHistory('重新开始比赛');
+        get().addToast('重新开始比赛！', 'info');
       });
 
       // 聊天事件
@@ -420,6 +586,27 @@ export const useGameStore = create<GameStore>()(
     removeToast: (id: string) => {
       set((s) => {
         s.toasts = s.toasts.filter((t) => t.id !== id);
+      });
+    },
+
+    setShowActionHistory: (show: boolean) => {
+      set((s) => {
+        s.showActionHistory = show;
+      });
+    },
+
+    pushActionHistory: (text: string) => {
+      if (!text) return;
+      set((s) => {
+        const id = s._nextActionHistoryId++;
+        const at = new Date().toLocaleTimeString('zh-CN', {
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        });
+        const entry: ActionHistoryEntry = { id, text, at };
+        s.actionHistory = [...s.actionHistory, entry].slice(-80);
       });
     },
 

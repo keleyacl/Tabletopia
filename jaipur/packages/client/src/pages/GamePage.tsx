@@ -12,6 +12,9 @@ import ActionBar from '../components/ActionBar';
 import OpponentInfo from '../components/OpponentInfo';
 import ChatPanel from '../components/ChatPanel';
 import GameOverModal from '../components/GameOverModal';
+import ActionHistory from '../components/ActionHistory';
+import ToastStack from '../components/ToastStack';
+import RulesModal from '../components/RulesModal';
 import { TRADE_GOODS } from '@jaipur/shared';
 
 const GamePage: React.FC = () => {
@@ -19,6 +22,7 @@ const GamePage: React.FC = () => {
   const playerIndex = useGameStore((state) => state.playerIndex);
   const toggleGameMenu = useGameStore((state) => state.toggleGameMenu);
   const showGameMenu = useGameStore((state) => state.showGameMenu);
+  const toggleRulesModal = useGameStore((state) => state.toggleRulesModal);
 
   if (!gameState) return null;
 
@@ -130,14 +134,32 @@ const GamePage: React.FC = () => {
         </div>
       </div>
 
+      {/* Toast 提示 */}
+      <ToastStack />
+
+      {/* 规则弹窗 */}
+      <RulesModal />
+
       {/* 游戏结束弹窗 */}
       <GameOverModal />
+
+      {/* 操作历史面板 */}
+      <ActionHistory />
 
       {/* 游戏菜单 */}
       {showGameMenu && (
         <div className="fixed inset-0 z-40 bg-black/50 flex items-center justify-center">
           <div className="bg-[var(--color-surface)] rounded-xl shadow-2xl p-6 w-64">
             <div className="space-y-3">
+              <button
+                onClick={() => {
+                  toggleRulesModal();
+                  toggleGameMenu();
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded transition-colors"
+              >
+                📖 规则说明
+              </button>
               <button
                 onClick={toggleGameMenu}
                 className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded transition-colors"
