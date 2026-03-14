@@ -712,10 +712,16 @@ install_systemd_services() {
   run_root_cmd install -m 0644 "${TEMP_DIR}/jaipur.service" "${SYSTEMD_DIR}/jaipur.service"
 
   run_root_cmd "${SYSTEMCTL_BIN}" daemon-reload
-  run_root_cmd "${SYSTEMCTL_BIN}" enable --now azul.service
-  run_root_cmd "${SYSTEMCTL_BIN}" enable --now splendor-duel.service
-  run_root_cmd "${SYSTEMCTL_BIN}" enable --now lost-cities.service
-  run_root_cmd "${SYSTEMCTL_BIN}" enable --now jaipur.service
+  run_root_cmd "${SYSTEMCTL_BIN}" enable azul.service
+  run_root_cmd "${SYSTEMCTL_BIN}" enable splendor-duel.service
+  run_root_cmd "${SYSTEMCTL_BIN}" enable lost-cities.service
+  run_root_cmd "${SYSTEMCTL_BIN}" enable jaipur.service
+
+  # 显式重启服务，避免部署后继续运行旧进程导致前后端版本不一致。
+  run_root_cmd "${SYSTEMCTL_BIN}" restart azul.service
+  run_root_cmd "${SYSTEMCTL_BIN}" restart splendor-duel.service
+  run_root_cmd "${SYSTEMCTL_BIN}" restart lost-cities.service
+  run_root_cmd "${SYSTEMCTL_BIN}" restart jaipur.service
 }
 
 maybe_install_dependencies() {
